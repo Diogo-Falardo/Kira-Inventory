@@ -8,11 +8,12 @@
     "types": ["vite/client"],
     "skipLibCheck": true,
 
+    //shadcn
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]
     },
-    "ignoreDeprecations": "6.0",
+    // "ignoreDeprecations": "6.0",
 
     /* Bundler mode */
     "moduleResolution": "bundler",
