@@ -17,7 +17,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile.dev
       args:
-        VITE_API_URL: http://localhost:8081/kiraINV/
+        VITE_API_URL: http://localhost:8081
     container_name: kira_frontend
     volumes:
       - ./frontend:/app

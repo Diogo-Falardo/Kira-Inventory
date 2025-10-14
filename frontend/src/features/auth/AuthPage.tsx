@@ -1,15 +1,71 @@
-import * as React from "react";
+import { useState } from "react";
+// page
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Eye, EyeOff, Mail, Lock, User } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock } from "lucide-react";
+
+// api
+import { getApiErrorMessage } from "@/core/api";
+import { useLoginUser, useRegisterUser } from "./AuthService";
+
+// alert
+import { toast } from "react-toastify";
 
 const AuthPage: React.FC = () => {
-  const [showPasswordLogin, setShowPasswordLogin] = React.useState(false);
-  const [showPasswordRegister, setShowPasswordRegister] = React.useState(false);
+  const [tab, setTab] = useState<"login" | "register">("login");
+  const [showPasswordLogin, setShowPasswordLogin] = useState(false);
+  const [showPasswordRegister, setShowPasswordRegister] = useState(false);
+  const [showPassword2Register, setShowPassword2Register] = useState(false);
+
+  const { mutate: doLogin, isPending: isLoginPending } = useLoginUser();
+  const { mutate: doRegister, isPending } = useRegisterUser();
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [password2, setPassword2] = useState("");
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    doLogin(
+      { email, password },
+      {
+        onSuccess: (token) => {
+          localStorage.setItem("token", token.access_token);
+          localStorage.setItem("refresh_token", token.refresh_token);
+          setEmail("");
+          setPassword("");
+        },
+        onError: (err) => {
+          const msg = getApiErrorMessage(err);
+          toast.error(msg, { autoClose: false });
+        },
+      }
+    );
+  };
+
+  const handleRegister = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (password == password2) {
+      doRegister(
+        { email, password, plan_code: "free", is_admin: false },
+        {
+          onSuccess: () => {
+            setPassword2("");
+          },
+          onError: (err) => {
+            const msg = getApiErrorMessage(err);
+            toast.error(msg, { autoClose: false });
+          },
+        }
+      );
+    } else {
+      toast.error("Passwords dont match");
+    }
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex items-center justify-center px-4">
@@ -31,7 +87,11 @@ const AuthPage: React.FC = () => {
 
         <Card className="bg-white border border-slate-200 shadow-sm">
           <CardContent className="p-6 sm:p-10">
-            <Tabs defaultValue="login" className="w-full">
+            <Tabs
+              value={tab}
+              onValueChange={(v) => setTab(v as "login" | "register")}
+              className="w-full"
+            >
               <div className="flex justify-center">
                 <TabsList className="bg-slate-100">
                   <TabsTrigger className="cursor-pointer" value="login">
@@ -46,10 +106,7 @@ const AuthPage: React.FC = () => {
               {/* LOGIN */}
               <TabsContent value="login" className="mt-8">
                 <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    // handle login submit
-                  }}
+                  onSubmit={handleLogin}
                   className="mx-auto max-w-md space-y-5"
                 >
                   <div className="space-y-2">
@@ -62,6 +119,8 @@ const AuthPage: React.FC = () => {
                         placeholder="you@example.com"
                         className="pl-9"
                         required
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
                       />
                     </div>
                   </div>
@@ -76,6 +135,8 @@ const AuthPage: React.FC = () => {
                         placeholder="••••••••"
                         className="pl-9 pr-10"
                         required
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
                       />
                       <button
                         type="button"
@@ -102,27 +163,21 @@ const AuthPage: React.FC = () => {
 
                   <Button
                     type="submit"
-                    className="w-full bg-slate-600 hover:bg-slate-700"
+                    className="w-full bg-slate-600 hover:bg-slate-700 cursor-pointer"
+                    disabled={isLoginPending}
                   >
-                    Sign in
+                    {isLoginPending ? "Signing in..." : "Sign in"}
                   </Button>
 
                   <div className="text-center text-sm text-slate-500">
                     Don’t have an account?{" "}
-                    <a
-                      href="#"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        const el = document.querySelector(
-                          '[data-state="inactive"][data-value="register"]'
-                        ) as HTMLElement | null;
-                        // Prefer programmatic change if you wire Tabs via state later
-                        el?.click();
-                      }}
-                      className="text-slate-600 hover:underline"
+                    <button
+                      type="button"
+                      onClick={() => setTab("register")}
+                      className="text-slate-600 hover:underline cursor-pointer"
                     >
                       Create one
-                    </a>
+                    </button>
                   </div>
                 </form>
               </TabsContent>
@@ -130,26 +185,9 @@ const AuthPage: React.FC = () => {
               {/* REGISTER */}
               <TabsContent value="register" className="mt-8">
                 <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    // handle register submit
-                  }}
+                  onSubmit={handleRegister}
                   className="mx-auto max-w-md space-y-5"
                 >
-                  <div className="space-y-2">
-                    <Label htmlFor="reg-name">Name</Label>
-                    <div className="relative">
-                      <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                      <Input
-                        id="reg-name"
-                        type="text"
-                        placeholder="Your name"
-                        className="pl-9"
-                        required
-                      />
-                    </div>
-                  </div>
-
                   <div className="space-y-2">
                     <Label htmlFor="reg-email">Email</Label>
                     <div className="relative">
@@ -160,6 +198,8 @@ const AuthPage: React.FC = () => {
                         placeholder="you@example.com"
                         className="pl-9"
                         required
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
                       />
                     </div>
                   </div>
@@ -174,6 +214,8 @@ const AuthPage: React.FC = () => {
                         placeholder="Create a strong password"
                         className="pl-9 pr-10"
                         required
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
                       />
                       <button
                         type="button"
@@ -188,33 +230,57 @@ const AuthPage: React.FC = () => {
                         )}
                       </button>
                     </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="reg-password">Repeat password</Label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                      <Input
+                        id="reg-password"
+                        type={showPassword2Register ? "text" : "password"}
+                        placeholder="Repeat password"
+                        className="pl-9 pr-10"
+                        required
+                        value={password2}
+                        onChange={(e) => setPassword2(e.target.value)}
+                      />
+                      <button
+                        type="button"
+                        aria-label="Toggle password visibility"
+                        onClick={() => setShowPassword2Register((v) => !v)}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-slate-500 hover:text-slate-700"
+                      >
+                        {showPassword2Register ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </button>
+                    </div>
                     <p className="text-xs text-slate-500">
-                      Use at least 8 characters, including a number.
+                      Use at least 6 characters, including an uppercase letter,
+                      a lowercase letter, a number, and a symbol.
                     </p>
                   </div>
 
                   <Button
                     type="submit"
-                    className="w-full bg-slate-600 hover:bg-slate-700"
+                    className="w-full bg-slate-600 hover:bg-slate-700 cursor-pointer"
+                    disabled={isPending}
                   >
-                    Create account
+                    {isPending ? "Creating account..." : "Create account"}
                   </Button>
 
                   <div className="text-center text-sm text-slate-500">
                     Already have an account?{" "}
-                    <a
-                      href="#"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        const el = document.querySelector(
-                          '[data-state="inactive"][data-value="login"]'
-                        ) as HTMLElement | null;
-                        el?.click();
-                      }}
-                      className="text-slate-600 hover:underline"
+                    <button
+                      type="button"
+                      onClick={() => setTab("login")}
+                      className="text-slate-600 hover:underline cursor-pointer"
                     >
                       Sign in
-                    </a>
+                    </button>
                   </div>
                 </form>
               </TabsContent>

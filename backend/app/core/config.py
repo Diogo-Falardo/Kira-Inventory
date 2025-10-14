@@ -5,7 +5,7 @@ class Settings(BaseSettings):
     APP_NAME: str 
     API_PREFIX: str
     DB_URL: str
-    CORS_ORIGINS: List[str] = ["http://localhost:5174", "http://localhost:5173"]
+    CORS_ORIGINS: List[str] = ["http://localhost:5174", "http://127.0.0.1:5174"]
     JWT_SECRET: str
     ISSUER: str
     AUDIENCE: str
