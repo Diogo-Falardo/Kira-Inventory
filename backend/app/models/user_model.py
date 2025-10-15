@@ -1,9 +1,7 @@
 from datetime import datetime, timezone
 from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, ForeignKey, UniqueConstraint
-from sqlalchemy.ext.declarative import declarative_base
+from .base import Base
 
-
-Base = declarative_base()
 
 
 class User(Base):

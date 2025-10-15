@@ -1,7 +1,14 @@
+from fastapi import Depends
+from sqlalchemy.orm import Session
 from datetime import datetime, timedelta, timezone
 from typing import Tuple, Dict, Any
 import uuid
+
 from app.core.config import settings
+# core
+from app.core.session import get_db
+# exceptions
+from app.utils.exceptions import THROW_ERROR
 
 def _now() -> datetime:
     return datetime.now(timezone.utc)
@@ -24,6 +31,8 @@ def verify_password_hash(plain_password: str, password_hash: str)-> bool:
 JWT
 """
 import jwt
+from jwt import ExpiredSignatureError, InvalidTokenError
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 def generate_access_token(
     subject: str,
@@ -60,4 +69,43 @@ def verify_token(token: str)-> Dict[str, Any]:
         leeway=60,
     )
     return claims
+
+
+# check user id
+from app.services.user_service import get_user_from_id    
+
+http_bearer = HTTPBearer()
+
+def validate_user_token(
+    creds: HTTPAuthorizationCredentials = Depends(http_bearer),
+    db: Session = Depends(get_db)
+) -> int:
+    token = creds.credentials
+    try:
+        payload = jwt.decode(token, settings.JWT_SECRET, algorithms=["HS256"], audience=settings.AUDIENCE, issuer=settings.ISSUER,
+        options={"require": ["sub", "exp", "iat", "nbf", "iss", "aud"]}, 
+        leeway=60
+        )
+
+        sub = payload.get("sub")
+
+        if sub is None:
+            THROW_ERROR("Invalid token!", 401)
+
+        try:
+            user_id = int(sub)
+        except (TypeError, ValueError):
+            THROW_ERROR("Invalid token subject!", 401)
+
+        if get_user_from_id(db,sub) is None:
+            THROW_ERROR("Invalid user!", 400)
+
+        return user_id
     
+    except ExpiredSignatureError:
+        THROW_ERROR("Token expired!", 400)
+    except InvalidTokenError:
+        THROW_ERROR("Invalid token!", 400)
+    except Exception as e:
+        THROW_ERROR(str(e), 500)
+

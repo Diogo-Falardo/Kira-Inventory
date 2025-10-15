@@ -9,7 +9,6 @@ from app.utils.exceptions import THROW_ERROR
 
 # ---- Base ----
 class ProductBase(BaseModel):
-    user_id: int
     name: str
     description: Optional[str] = None
     price: Decimal
@@ -19,12 +18,6 @@ class ProductBase(BaseModel):
     internal_code: Optional[str] = None
     inactive: bool = False
 
-    @field_validator("user_id")
-    @classmethod
-    def user_id_positive(cls, v: int):
-        if v is None or v <= 0:
-            THROW_ERROR("user_id must be a positive integer.", 400)
-        return v
 
     @field_validator("name")
     @classmethod
@@ -124,8 +117,14 @@ class ProductUpdate(BaseModel):
 
 # ---- Read/Out ----
 class ProductOut(ProductBase):
-    id: int
     created_at: datetime
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+# --- Delete ----
+class ProductDeleteOut(ProductBase):
+    deleted_at: datetime
+
+
+    
