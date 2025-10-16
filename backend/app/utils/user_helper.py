@@ -4,7 +4,7 @@ import re
 # utils
 from app.utils.exceptions import THROW_ERROR
 # models
-from app.models.user_model import User
+from app.models.user_model import User, AdvancedUsersProfile
 
 """
 input validators
@@ -20,8 +20,6 @@ def validate_email(email: str) -> bool:
     except EmailNotValidError as e:
         return False, str(e)
     
-
-
 def validate_password(password: str)-> bool:
     if len(password) < 6:
         THROW_ERROR("Password is to short!", 400)
@@ -35,6 +33,10 @@ def validate_password(password: str)-> bool:
     return True
     
 def validate_username(username: str) -> bool:
+
+    if not username:
+        THROW_ERROR("Username is required!", 400)
+
     if len(username) < 3:
         THROW_ERROR("Username is to short!", 400)
     if len(username) > 15:
@@ -43,9 +45,20 @@ def validate_username(username: str) -> bool:
     underscore_pattern = r"^[A-Za-z0-9_]+$"
     if not re.fullmatch(underscore_pattern, username):
         THROW_ERROR("Username can only contain letters,numbers and _(underscore)!", 400)
+
+    
     
     return True
 
+def validate_phone(phone_number: int) -> bool:
+    
+    if not phone_number:
+        THROW_ERROR("Phone number is required", 400)
+
+    if len(phone_number) < 4 or len(phone_number) > 15:
+        THROW_ERROR("Invalid phone number!", 400)
+
+    return True
 
 """
 input finders
@@ -53,15 +66,15 @@ input finders
 # if there is no parameter on the db return false
 # if there is return true
 
-def email_finder(db: Session, email: str) -> bool:
+def email_finder(email: str, db: Session) -> bool:
     user = db.query(User).filter(User.email == email).first()
     if user is not None:
         return True
     
     return False
 
-def username_finder(db: Session, username: str) -> bool:
-    user = db.query(User).filter(User.username == username).first()
+def username_finder(username: str, db: Session) -> bool:
+    user = db.query(User).filter(AdvancedUsersProfile.username == username).first()
     if user is not None:
         return True
     

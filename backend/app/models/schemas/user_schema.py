@@ -139,6 +139,7 @@ class AdvancedUsersProfileCreate(AdvancedUsersProfileBase):
 
 # ---- Update (patch) ----
 class AdvancedUsersProfileUpdate(BaseModel):
+    user_id: int
     username: Optional[str] = None
     avatar_url: Optional[str] = None
     address: Optional[str] = None

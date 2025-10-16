@@ -6,11 +6,14 @@ from app.utils.exceptions import THROW_ERROR
 # models
 from app.models.product_model import Product
 
+"""
+input validatores
+"""
+
 # validate product 
 # if its valid return true
-
-def validate_product_name(db: Session,product_name: str, user_id: int) -> bool:
-    pattern = re.compile('[a-zA-Z0-9\s]+$')
+def validate_product_name(product_name: str, user_id: int,db: Session) -> bool:
+    pattern = re.compile(r'^[a-zA-Z0-9]+$')
 
     if pattern.match(product_name) is None: 
         THROW_ERROR("Product name cant have simbols!", 400)
@@ -45,4 +48,26 @@ def validate_product_platform(product_platform: str) -> bool:
     
     return True
 
+
+def validate_product_internalcode(product_internalcode: str, db: Session) -> bool:
+
+    product = db.query(Product).filter(Product.internal_code == product_internalcode).first()
+    if product:
+        THROW_ERROR("There is already a product with that internal code", 400)
+
+    return True
+
+"""
+checker
+"""
+# this function verifies if the product id corresponds to that user id
+# returns the product
+def check_product_user(product_id: int, user_id: int, db: Session) -> bool:
+
+    product = db.query(Product).filter(Product.id == product_id, Product.user_id == user_id).first()
+    if product is None:
+        THROW_ERROR("Hmmm that doenst look good! are u sure thats your product??", 400)
+
+
+    return product
 

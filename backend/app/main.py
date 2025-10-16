@@ -18,3 +18,6 @@ app.include_router(auth_router)
 
 from app.routes.product import router as product_router
 app.include_router(product_router)
+
+from app.routes.user import router as user_router
+app.include_router(user_router)

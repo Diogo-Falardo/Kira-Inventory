@@ -24,7 +24,7 @@ def register_user(
     _email = user_helper.validate_email(payload.email)
     user_helper.validate_password(payload.password)
 
-    if user_helper.email_finder(db,payload.email) is True:
+    if user_helper.email_finder(payload.email, db) is True:
         THROW_ERROR("Email already in use.", 400)
     
     _password = create_password_hash(payload.password)
