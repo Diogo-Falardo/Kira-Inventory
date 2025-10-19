@@ -1,7 +1,7 @@
 from datetime import datetime
 from decimal import Decimal
 from typing import Optional
-from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic import BaseModel, ConfigDict, field_validator, Field
 
 # exceptions
 from app.utils.exceptions import THROW_ERROR
@@ -11,6 +11,7 @@ from app.utils.exceptions import THROW_ERROR
 class ProductBase(BaseModel):
     name: str
     description: Optional[str] = None
+    available_stock: int = Field(0, ge=0)
     price: Decimal
     cost: Optional[Decimal] = None
     platform: Optional[str] = None
@@ -66,6 +67,7 @@ class ProductCreate(ProductBase):
 class ProductUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
+    available_stock: int | None = Field(None, ge=0)
     price: Optional[Decimal] = None
     cost: Optional[Decimal] = None
     platform: Optional[str] = None

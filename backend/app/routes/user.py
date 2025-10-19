@@ -8,9 +8,9 @@ from app.core.security import validate_user_token
 # exceptions 
 from app.utils.exceptions import THROW_ERROR
 # schemas
-from app.models.schemas.user_schema import AdvancedUsersProfileUpdate
+from app.models.schemas.user_schema import AdvancedUsersProfileUpdate, UserChangePassword
 # services
-from app.services.user_service import get_user_profile, insert_new_profile, update_user_profile
+from app.services.user_service import get_user_from_id, get_user_profile, insert_new_profile, update_user_profile, new_email, new_password
 # utils
 from app.utils.user_helper import *
 
@@ -45,8 +45,34 @@ def update_user(
 
     return update_user_profile(user,data,db)
     
-
 # change email
-# change password
-# last-login -> GET
+@router.put("/change-email/", response_model=dict)
+def change_email(
+    payload: str,
+    db: Session = Depends(get_db),
+    current_user_id = Depends(validate_user_token)
+):
+    return new_email(payload, current_user_id, db)
 
+# change password
+@router.put("/change-password/", response_model=dict)
+def change_password(
+    payload: UserChangePassword,
+    db: Session = Depends(get_db),
+    current_user_id = Depends(validate_user_token)
+): 
+    validate_password(payload.password)
+    validate_password(payload.new_password)
+
+    return new_password(payload,current_user_id, db)
+
+# last-login -> GET
+@router.get("/my-last-login/", response_model=dict)
+def last_login(
+    db: Session = Depends(get_db),
+    current_user_id = Depends(validate_user_token)
+):
+    user = get_user_from_id(db, current_user_id)
+
+
+    return {"detail":f"{user.last_login}"}

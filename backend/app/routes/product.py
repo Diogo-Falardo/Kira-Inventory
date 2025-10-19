@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from typing import Any
+from enum import Enum
 # core
 from app.core.session import get_db
 # securty
@@ -12,7 +13,7 @@ from app.utils.exceptions import THROW_ERROR
 # utils
 from app.utils.product_helper import *
 # services
-from app.services.product_service import insert_product, change_product, change_product_state, remove_product
+from app.services import product_service
 
 router = APIRouter(prefix="/product", tags=["product"])
 
@@ -30,7 +31,7 @@ def create_new_product(
     validate_product_platform(payload.platform)
     validate_product_internalcode(payload.internal_code,db)
 
-    return insert_product(payload,current_user_id,db)
+    return product_service.insert_product(payload,current_user_id,db)
 
 
 # update a product -> without needing to update everything
@@ -63,7 +64,7 @@ def update_product(
     # validate if the user is the owner of that product
     product = check_product_user(product_id,current_user_id, db)
 
-    return change_product(product,data,db)
+    return product_service.change_product(product,data,db)
 
 
 # inactive a product -> it can be activated again 
@@ -75,7 +76,7 @@ def inactive_product(
 ):
     product = check_product_user(product_id,current_user_id,db)
 
-    return change_product_state(product,db)
+    return product_service.change_product_state(product,db)
 
 
 # delete a product -> delete from the db
@@ -87,9 +88,70 @@ def delete_product(
 ):
     product = check_product_user(product_id,current_user_id,db)
 
-    return remove_product(product,db)
+    return product_service.remove_product(product,db)
 
+# get products
+# default -> return all products
+# row -> input
+# ge -> lowest value possible
+# le -> max value possible
+
+class Modes(str, Enum):
+    all = "all"
+    first = "first"
+    last = "last"
+
+# list of all products
+@router.get("/my-products/")
+def products(
+    mode: Modes = Query(Modes.all, description="data order"),
+    n: int = Query(5, ge=1, le=1000, description="Number of items for first/last"),
+    db: Session = Depends(get_db),
+    current_user_id = Depends(validate_user_token)
+): 
+    return product_service.retrieve_products(current_user_id,db,mode,n)
+
+
+"""
+stats of the products -> start here
+"""
+
+# stock stats and price of all
+@router.get("/products-available/", response_model=dict)
+def products(
+    db: Session = Depends(get_db),
+    current_user_id = Depends(validate_user_token)
+):
+    return product_service.number_of_products_available(current_user_id,db)
+
+# most lucrative products -> Top 3 or more...
+@router.get("/top-lucrative-products/", response_model=dict)
+def lucrative_products(
+    db: Session = Depends(get_db),
+    current_user_id = Depends(validate_user_token)
+): 
+    return product_service.most_valuead_products(current_user_id, db)
+
+# stock profits + where client is losing money
+@router.get("/estimated-profit/")
+def profit(
+    db: Session = Depends(get_db),
+    current_user_id = Depends(validate_user_token)
+):
+    return product_service.profit(current_user_id, db)
+
+# products that are low on stock
+@router.get("/low-stock-items/{value}", response_model=dict)
+def low_stock(
+    value: int,
+    db: Session = Depends(get_db),
+    current_user_id = Depends(validate_user_token)
+):
+    return product_service.low_stock_items(value,current_user_id,db)
     
+    
+
+
    
 
 

@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
 from typing import Mapping, Any
+from enum import Enum
 # models
 from app.models.product_model import Product
 # schemas
@@ -59,4 +60,117 @@ def remove_product(product: Product, db: Session):
     db.commit()
 
     return {"detail":"Product deleted successfully"}
+
+
+class Modes(str, Enum):
+    all = "all"
+    first = "first"
+    last = "last"
+
+# get products
+# if first or last doesnt have an n [default = 5]
+def retrieve_products(user_id: int,db: Session,mode: Modes = Modes.all, n: int = 5):
+    # not needed
+    if mode not in Modes:
+        THROW_ERROR("Option not available!", 400)
+
+    user_products = db.query(Product).filter(Product.user_id == user_id)   
+
+    if mode == Modes.all:
+        products = user_products.order_by(Product.created_at.desc()).all()
+    # asc
+    elif mode == Modes.first:
+        products = user_products.order_by(Product.created_at.asc()).limit(n).all()
+    # desc
+    elif mode == Modes.last:
+        products = user_products.order_by(Product.created_at.desc()).limit(n).all()
+
+    else:
+        THROW_ERROR("Invalid mode!", 400)
+
+    return products
+
+# number of products available + price of all
+def number_of_products_available(user_id: int, db: Session):
+
+    products = db.query(Product).filter(Product.user_id == user_id).all()
+
+    available_stock = 0
+    total_price = 0
+    for product in products:
+        if product.available_stock > 1:
+            available_stock += product.available_stock
+            total_price += product.available_stock * product.price
+
+    return{
+        "available_stock": f"{available_stock}",
+        "total_price": f"{total_price}"
+    }
+    
+# top 3 lucrative products
+def most_valuead_products(user_id: int, db: Session):
+
+    products = db.query(Product).filter(Product.user_id == user_id).all()
+
+    profitable = [product for product in products if product.price > product.cost]
+
+    profitable.sort(key=lambda product: product.price - product.cost, reverse=True)
+
+    top3 = profitable[:3]
+
+    result = {
+        product.name: {
+            "profit": round(product.price - product.cost, 2)
+        }
+        for product in top3
+    }
+
+    return result
+
+# value of stock and profit + product where client losing money
+def profit(user_id: int, db: Session):
+
+    products = db.query(Product).filter(Product.user_id == user_id).all()
+
+    profit_value = 0
+    stock_cost = 0
+    products_not_profitable = 0
+    losses = []
+    for product in products:
+        profit_value += product.price * product.available_stock
+        stock_cost += product.cost * product.available_stock
+        if product.cost > product.price:
+            products_not_profitable += 1
+            loss_amout = round(product.cost - product.price, 3)
+            losses.append({
+                "name": product.name,
+                "loss on each product": loss_amout
+            })
+            
+
+            
+
+    return {"stock cost":stock_cost,"profit":profit_value,"losing_products": losses}
+        
+# get the low stock items -> user says what quantity its low
+def low_stock_items(quantity: int, user_id: int, db: Session):
+
+    products = db.query(Product).filter(Product.user_id == user_id).all()
+
+    low_stock = []
+    for product in products:
+        if product.available_stock < quantity:
+            low_stock.append({
+                "name": product.name,
+                "stock available": product.available_stock
+            })
+
+    if len(low_stock) > 1:
+        return {"You need more stock of ": low_stock}
+    else:
+        return "Your stock is all good"
+
+
+
+
     

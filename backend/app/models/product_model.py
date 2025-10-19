@@ -12,6 +12,7 @@ class Product(Base):
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False, index=True)
     name = Column(String(200), nullable=False)
     description = Column(Text, nullable=True) 
+    available_stock = Column(Integer, nullable=False, default=0)
     price = Column(Numeric(10, 2), nullable=False, default=0.00)
     cost = Column(Numeric(10, 2), nullable=True)
     platform = Column(String(50), nullable=True)

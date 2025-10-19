@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, Body
 from sqlalchemy.orm import Session
+from datetime import datetime, timezone
 # core
 from app.core.session import get_db
 # security
@@ -67,6 +68,9 @@ def login_user(
         minutes=60*24*30,
         scope="refresh",
     )
+
+    user.last_login = datetime.now(timezone.utc)
+    db.commit()
 
     return {
         "access_token": access_token,

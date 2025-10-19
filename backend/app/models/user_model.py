@@ -16,6 +16,7 @@ class User(Base):
     is_admin = Column(Boolean, nullable=False, default=False)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    last_login = Column(DateTime, nullable=True)
 
 
     def __repr__(self):

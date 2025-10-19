@@ -37,7 +37,7 @@ class UserCreate(UserBase):
 
     @field_validator("password")
     @classmethod
-    def password_not_blank(cls, v: str):
+    def create_password_not_blank(cls, v: str):
         if not v or not v.strip():
             THROW_ERROR("Password cannot be blank.", 400)
         return v
@@ -63,6 +63,24 @@ class UserLogin(BaseModel):
             THROW_ERROR("Password cannot be blank.", 400)
         return v
 
+class UserChangePassword(BaseModel):
+    password: str = Field(min_length=6)
+
+    @field_validator("password")
+    @classmethod
+    def password_not_blank(cls, v: str):
+        if not v or not v.strip():
+            THROW_ERROR("Password cannot be blank.", 400)
+        return v
+    
+    new_password: str = Field(min_length=6)
+
+    @field_validator("new_password")
+    @classmethod
+    def new_password_not_blank(cls, v: str):
+        if not v or not v.strip():
+            THROW_ERROR("New password cannot be blank.", 400)
+        return v
 
 # ---- Update (patch) ----
 class UserUpdate(BaseModel):
