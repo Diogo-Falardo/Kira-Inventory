@@ -9,8 +9,11 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Eye, EyeOff, Mail, Lock } from "lucide-react";
 
 // api
-import { getApiErrorMessage } from "@/core/api";
-import { useLoginUser, useRegisterUser } from "./AuthService";
+import { afterLoginStoreTokens, getApiErrorMessage } from "@/core/api";
+import {
+  useLoginUserAuthLoginPost,
+  useRegisterUserAuthRegisterPost,
+} from "@/generated/auth/auth";
 
 // alert
 import { toast } from "react-toastify";
@@ -21,8 +24,9 @@ const AuthPage: React.FC = () => {
   const [showPasswordRegister, setShowPasswordRegister] = useState(false);
   const [showPassword2Register, setShowPassword2Register] = useState(false);
 
-  const { mutate: doLogin, isPending: isLoginPending } = useLoginUser();
-  const { mutate: doRegister, isPending } = useRegisterUser();
+  const { mutate: doLogin, isPending: isLoginPending } =
+    useLoginUserAuthLoginPost();
+  const { mutate: doRegister, isPending } = useRegisterUserAuthRegisterPost();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -31,17 +35,15 @@ const AuthPage: React.FC = () => {
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     doLogin(
-      { email, password },
+      { data: { email, password } },
       {
         onSuccess: (token) => {
-          localStorage.setItem("token", token.access_token);
-          localStorage.setItem("refresh_token", token.refresh_token);
+          afterLoginStoreTokens(token);
           setEmail("");
           setPassword("");
         },
         onError: (err) => {
-          const msg = getApiErrorMessage(err);
-          toast.error(msg, { autoClose: false });
+          toast.error(getApiErrorMessage(err), { autoClose: false });
         },
       }
     );
@@ -51,14 +53,13 @@ const AuthPage: React.FC = () => {
     e.preventDefault();
     if (password == password2) {
       doRegister(
-        { email, password, plan_code: "free", is_admin: false },
+        { data: { email, password, plan_code: "free", is_admin: false } },
         {
           onSuccess: () => {
             setPassword2("");
           },
           onError: (err) => {
-            const msg = getApiErrorMessage(err);
-            toast.error(msg, { autoClose: false });
+            toast.error(getApiErrorMessage(err), { autoClose: false });
           },
         }
       );

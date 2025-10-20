@@ -1,4 +1,4 @@
-import AuthPage from "@/features/auth/AuthPage";
+import AuthPage from "@/pages/AuthPage";
 import { createFileRoute } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/auth")({

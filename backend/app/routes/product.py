@@ -18,7 +18,7 @@ from app.services import product_service
 router = APIRouter(prefix="/product", tags=["product"])
 
 # create a product -> add
-@router.post("/add-product/", response_model=ProductBase)
+@router.post("/add-product/", response_model=ProductBase, name="addProduct")
 def create_new_product(
     payload: ProductCreate,
     db: Session = Depends(get_db),
@@ -35,7 +35,7 @@ def create_new_product(
 
 
 # update a product -> without needing to update everything
-@router.patch("/update-product/{product_id}", response_model=ProductOut)
+@router.patch("/update-product/{product_id}", response_model=ProductOut, name="updateProduct")
 def update_product(
     product_id: int,
     payload: ProductUpdate,
@@ -68,7 +68,7 @@ def update_product(
 
 
 # inactive a product -> it can be activated again 
-@router.put("/inactive-product/{product_id}", response_model=ProductOut)
+@router.put("/inactive-product/{product_id}", response_model=ProductOut, name="inactiveProduct")
 def inactive_product(
     product_id: int,
     db: Session = Depends(get_db),
@@ -80,7 +80,7 @@ def inactive_product(
 
 
 # delete a product -> delete from the db
-@router.delete("/delete-product/{product_id}", response_model=dict)
+@router.delete("/delete-product/{product_id}", response_model=dict, name="deleteProduct")
 def delete_product(
     product_id: int,
     db: Session = Depends(get_db),
@@ -102,7 +102,7 @@ class Modes(str, Enum):
     last = "last"
 
 # list of all products
-@router.get("/my-products/")
+@router.get("/my-products/", name="myProducts")
 def products(
     mode: Modes = Query(Modes.all, description="data order"),
     n: int = Query(5, ge=1, le=1000, description="Number of items for first/last"),
@@ -117,15 +117,15 @@ stats of the products -> start here
 """
 
 # stock stats and price of all
-@router.get("/products-available/", response_model=dict)
+@router.get("/products-available/", response_model=dict, name="productsAvailable")
 def products(
     db: Session = Depends(get_db),
     current_user_id = Depends(validate_user_token)
 ):
     return product_service.number_of_products_available(current_user_id,db)
 
-# most lucrative products -> Top 3 or more...
-@router.get("/top-lucrative-products/", response_model=dict)
+# most lucrative products -> Top 3.
+@router.get("/top-lucrative-products/", response_model=dict, name="topLucrativeProducts")
 def lucrative_products(
     db: Session = Depends(get_db),
     current_user_id = Depends(validate_user_token)
@@ -133,7 +133,7 @@ def lucrative_products(
     return product_service.most_valuead_products(current_user_id, db)
 
 # stock profits + where client is losing money
-@router.get("/estimated-profit/")
+@router.get("/estimated-profit/", name="estimatedProfit")
 def profit(
     db: Session = Depends(get_db),
     current_user_id = Depends(validate_user_token)
@@ -141,7 +141,7 @@ def profit(
     return product_service.profit(current_user_id, db)
 
 # products that are low on stock
-@router.get("/low-stock-items/{value}", response_model=dict)
+@router.get("/low-stock-items/{value}", response_model=dict, name="lowStockItems")
 def low_stock(
     value: int,
     db: Session = Depends(get_db),

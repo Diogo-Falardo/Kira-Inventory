@@ -168,7 +168,7 @@ def low_stock_items(quantity: int, user_id: int, db: Session):
     if len(low_stock) > 1:
         return {"You need more stock of ": low_stock}
     else:
-        return "Your stock is all good"
+        return {"detail": "Your stock is all good"}
 
 
 

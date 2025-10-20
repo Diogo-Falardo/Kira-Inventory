@@ -17,7 +17,7 @@ from app.utils.exceptions import THROW_ERROR
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 # register the user
-@router.post("/register", response_model=UserOut)
+@router.post("/register", response_model=UserOut, name="registerUser")
 def register_user(
     payload: UserCreate,
     db: Session = Depends(get_db)
@@ -42,7 +42,7 @@ def register_user(
     return user
 
 # login the user
-@router.post("/login", response_model=Token)
+@router.post("/login", response_model=Token, name="loginUser")
 def login_user(
     payload: UserLogin,
     db: Session = Depends(get_db)
@@ -79,7 +79,7 @@ def login_user(
     }
     
 # refresh JWT token
-@router.post("/refresh", response_model=Token)
+@router.post("/refresh", response_model=Token, name="refreshToken")
 def refresh_token(payload: dict = Body(...)):
     token = payload.get("refresh_token")
     if not token:

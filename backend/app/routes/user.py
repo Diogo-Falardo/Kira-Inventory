@@ -17,7 +17,7 @@ from app.utils.user_helper import *
 router = APIRouter(prefix="/user", tags=["user"])
 
 # update profile
-@router.patch("/update-user/", response_model=dict)
+@router.patch("/update-user/", response_model=dict, name="updateUserProfile")
 def update_user(
     payload: AdvancedUsersProfileUpdate, 
     db: Session = Depends(get_db), 
@@ -46,7 +46,7 @@ def update_user(
     return update_user_profile(user,data,db)
     
 # change email
-@router.put("/change-email/", response_model=dict)
+@router.put("/change-email/", response_model=dict, name="changeUserEmail")
 def change_email(
     payload: str,
     db: Session = Depends(get_db),
@@ -55,7 +55,7 @@ def change_email(
     return new_email(payload, current_user_id, db)
 
 # change password
-@router.put("/change-password/", response_model=dict)
+@router.put("/change-password/", response_model=dict, name="changeUserPassword")
 def change_password(
     payload: UserChangePassword,
     db: Session = Depends(get_db),
@@ -67,7 +67,7 @@ def change_password(
     return new_password(payload,current_user_id, db)
 
 # last-login -> GET
-@router.get("/my-last-login/", response_model=dict)
+@router.get("/my-last-login/", response_model=dict, name="lastLogin")
 def last_login(
     db: Session = Depends(get_db),
     current_user_id = Depends(validate_user_token)

@@ -54,7 +54,7 @@ class UserLogin(BaseModel):
             THROW_ERROR("Email cannot be blank.", 400)
         return v.lower()
 
-    password: str = Field(min_length=6)
+    password: str = Field(min_length=6,)
 
     @field_validator("password")
     @classmethod
