@@ -221,7 +221,7 @@ export async function apiFetcher<T>(config: AxiosRequestConfig): Promise<T> {
  * Save tokens to localStorage after login.
  * Typically called after a successful login mutation.
  */
-export async function afterLoginStoreTokens<T extends Tokens>(data: T) {
+export function afterLoginStoreTokens<T extends Tokens>(data: T) {
   setTokens({
     access_token: data.access_token,
     refresh_token: data.refresh_token,

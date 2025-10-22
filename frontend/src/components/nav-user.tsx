@@ -1,7 +1,6 @@
-"use client";
+import { useNavigate } from "@tanstack/react-router";
 
 import { User, ChevronsUpDown, LogOut } from "lucide-react";
-
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -29,6 +28,8 @@ export function NavUser({
   };
 }) {
   const { isMobile } = useSidebar();
+
+  const navigate = useNavigate();
 
   return (
     <SidebarMenu>
@@ -70,7 +71,10 @@ export function NavUser({
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem className="cursor-pointer">
+              <DropdownMenuItem
+                onClick={() => navigate({ to: "/userpanel/userProfile" })}
+                className="cursor-pointer"
+              >
                 <User />
                 profile
               </DropdownMenuItem>

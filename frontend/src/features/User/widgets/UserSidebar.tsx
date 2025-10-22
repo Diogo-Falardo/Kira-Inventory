@@ -1,5 +1,5 @@
+// page
 import { NavUser } from "@/components/nav-user";
-import { TeamSwitcher } from "@/components/team-switcher";
 import {
   Sidebar,
   SidebarContent,
@@ -11,20 +11,15 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import { Package, LayoutDashboard } from "lucide-react";
 
-import { Box, Github, Package, LayoutDashboard } from "lucide-react";
+// auth -> context
+import { useAuth } from "@/core/authContext";
 
-const data = [
-  {
-    name: "Kira Inventory",
-    logo: Box,
-  },
-  {
-    name: "Github",
-    logo: Github,
-  },
-];
+// navigate
+import { useNavigate, Link } from "@tanstack/react-router";
 
+// navbar free items
 const items = [
   {
     name: "Dashboard",
@@ -38,21 +33,41 @@ const items = [
   },
 ];
 
-const userInfo = {
-  name: "shadcn",
-  email: "m@example.com",
-  avatar: "/avatars/shadcn.jpg",
-};
-
 export function UserSidebar({
   ...props
 }: React.ComponentProps<typeof Sidebar>) {
+  // logout
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate({ to: "/" });
+  };
+
+  if (!user) {
+    return null;
+  }
+
+  // userinfo
+  const userInfo = {
+    email: user.email,
+    name: user.username,
+    avatar: user.avatar,
+  };
+
   return (
     <Sidebar collapsible="offcanvas" {...props}>
       <SidebarHeader>
-        <TeamSwitcher teams={data} />
+        <Link
+          to="/"
+          className="flex items-center px-3 py-2 hover:opacity-80 transition-opacity cursor-pointer"
+        >
+          <h1 className="text-xl font-extrabold tracking-tight">
+            KIRA <span className="text-slate-400">Inventory</span>
+          </h1>
+        </Link>
       </SidebarHeader>
-
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel>Free</SidebarGroupLabel>
@@ -60,18 +75,17 @@ export function UserSidebar({
             {items.map((item) => (
               <SidebarMenuItem key={item.name}>
                 <SidebarMenuButton asChild>
-                  <a href={item.url}>
+                  <Link to={item.url}>
                     <item.icon />
                     <span>{item.name}</span>
-                  </a>
+                  </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             ))}
           </SidebarMenu>
         </SidebarGroup>
       </SidebarContent>
-
-      <SidebarFooter>
+      <SidebarFooter onClick={handleLogout}>
         <NavUser user={userInfo} />
       </SidebarFooter>
     </Sidebar>

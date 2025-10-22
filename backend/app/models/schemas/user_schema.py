@@ -170,3 +170,9 @@ class AdvancedUsersProfileOut(AdvancedUsersProfileBase):
     id: int
 
     model_config = ConfigDict(from_attributes=True)
+
+""" OTHER """
+
+class UserCompleted(BaseModel):
+    email: EmailStr
+    username: str

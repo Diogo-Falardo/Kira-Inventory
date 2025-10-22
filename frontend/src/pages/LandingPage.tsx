@@ -3,7 +3,25 @@ import { Card, CardContent } from "@/components/ui/card";
 import { motion } from "framer-motion";
 import { Boxes, Package, BarChart3 } from "lucide-react";
 
+// react-router
+import { useNavigate } from "@tanstack/react-router";
+
+// auth -> context
+import { useAuth } from "@/core/authContext";
+
 const LandingPage = () => {
+  const navigate = useNavigate();
+
+  const { isAuthenticated } = useAuth();
+
+  const handleClick = () => {
+    if (isAuthenticated) {
+      navigate({ to: "/userpanel" });
+    } else {
+      navigate({ to: "/auth" });
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-background text-slate-900">
       {/* Hero Section */}
@@ -24,18 +42,13 @@ const LandingPage = () => {
         </p>
 
         <div className="mt-8 flex justify-center gap-4">
+          {/* REDIRECT BUTTON */}
           <Button
+            onClick={handleClick}
             size="lg"
             className="bg-slate-600 hover:bg-slate-700 text-white font-semibold cursor-pointer"
           >
             Get Started
-          </Button>
-          <Button
-            size="lg"
-            variant="outline"
-            className="border-slate-600 text-slate-600 hover:bg-blue-50 cursor-pointer"
-          >
-            Learn More
           </Button>
         </div>
       </header>

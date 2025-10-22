@@ -1,5 +1,4 @@
-"use client";
-
+// api -> FROM ORVAL
 import {
   useMyProductsProductMyProductsGet,
   useProductsAvailableProductProductsAvailableGet,
@@ -7,7 +6,7 @@ import {
   useEstimatedProfitProductEstimatedProfitGet,
   useLowStockItemsProductLowStockItemsValueGet,
 } from "@/generated/product/product";
-
+// page
 import { Card, CardContent } from "@/components/ui/card";
 import { motion } from "framer-motion";
 import {
@@ -86,40 +85,35 @@ function Stat({
 
 /* ------------------------------ main page ------------------------------ */
 export function UserDashboardPage() {
-  /* user-controlled GET params */
-  const [mode, setMode] = React.useState<"all" | "first" | "last">("all");
-  const [n, setN] = React.useState<number>(5);
+  // still fetch my-products to power the KPI
+  const mode: "all" | "first" | "last" = "all";
+  const n = 5;
   const [lowThreshold, setLowThreshold] = React.useState<number>(20);
 
-  // GET: /product/my-products?mode=<mode>&n=<n>
   const {
     data: myProductsRaw,
     isLoading: loadingMyProducts,
     error: errMyProducts,
   } = useMyProductsProductMyProductsGet({ mode, n });
 
-  // GET: /product/products-available
   const {
     data: availableRaw,
     isLoading: loadingAvailable,
     error: errAvailable,
   } = useProductsAvailableProductProductsAvailableGet();
 
-  // GET: /product/top-lucrative-products
   const {
     data: topLucrativeRaw,
     isLoading: loadingTop,
     error: errTop,
   } = useTopLucrativeProductsProductTopLucrativeProductsGet();
 
-  // GET: /product/estimated-profit
   const {
     data: estimatedRaw,
     isLoading: loadingEst,
     error: errEst,
   } = useEstimatedProfitProductEstimatedProfitGet();
 
-  // GET: /product/low-stock-items/{value}
   const {
     data: lowStockRaw,
     isLoading: loadingLow,
@@ -146,14 +140,13 @@ export function UserDashboardPage() {
   const topList: Array<[string, any]> = topLucrative
     ? Object.entries(topLucrative)
     : [];
-
   const losingProducts = asArray<any>(estimated?.losing_products);
+
   const stockCost = estimated?.["stock cost"];
   const estProfit = estimated?.profit;
   const availableStock = available?.available_stock;
   const totalPrice = available?.total_price;
 
-  /* Chart data from /top-lucrative-products */
   const chartData =
     loadingTop || topList.length === 0
       ? [
@@ -235,7 +228,7 @@ export function UserDashboardPage() {
 
         {/* Chart + Top Lucrative */}
         <section className="grid gap-6 lg:grid-cols-3">
-          {/* Recharts bar chart */}
+          {/* Profit chart */}
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
@@ -244,15 +237,13 @@ export function UserDashboardPage() {
             <Card className="border-slate-200">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
-                      <BarChart3 className="h-5 w-5 text-slate-600" />
-                      Profit per Product
-                    </h3>
-                  </div>
+                  <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                    <BarChart3 className="h-5 w-5 text-slate-600" />
+                    Profit per Product
+                  </h3>
                 </div>
 
-                <div className="h-72">
+                <div className="w-full min-w-0 h-72">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
                       data={chartData}
@@ -335,124 +326,7 @@ export function UserDashboardPage() {
           </motion.div>
         </section>
 
-        {/* My products table with inline controls */}
-        <section>
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            <Card className="border-slate-200 overflow-hidden">
-              <CardContent className="p-0">
-                <div className="flex flex-col gap-3 p-4 border-b border-slate-200 md:flex-row md:items-center md:justify-between">
-                  <div>
-                    <h3 className="text-lg font-semibold text-slate-900">
-                      My Products
-                    </h3>
-                    <p className="text-sm text-slate-600">
-                      Showing{" "}
-                      <span className="font-medium">{myProducts.length}</span>{" "}
-                      items
-                    </p>
-                  </div>
-
-                  {/* inline controls for mode + n */}
-                  <div className="flex flex-wrap items-center gap-3">
-                    <label className="text-xs font-medium text-slate-600">
-                      Order
-                    </label>
-                    <select
-                      className="h-9 rounded-xl border border-slate-200 bg-white px-3 text-sm"
-                      value={mode}
-                      onChange={(e) =>
-                        setMode(e.target.value as "all" | "first" | "last")
-                      }
-                    >
-                      <option value="all">all</option>
-                      <option value="first">first</option>
-                      <option value="last">last</option>
-                    </select>
-
-                    <label className="text-xs font-medium text-slate-600">
-                      Number of products
-                    </label>
-                    <input
-                      type="number"
-                      min={1}
-                      max={1000}
-                      value={n}
-                      onChange={(e) =>
-                        setN(Math.max(1, Number(e.target.value)))
-                      }
-                      className="h-9 w-24 rounded-xl border border-slate-200 bg-white px-3 text-sm"
-                    />
-                  </div>
-                </div>
-
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead className="bg-slate-50/80 text-slate-600">
-                      <tr>
-                        <th className="text-left font-medium px-4 py-3">ID</th>
-                        <th className="text-left font-medium px-4 py-3">
-                          Product
-                        </th>
-                        <th className="text-left font-medium px-4 py-3">SKU</th>
-                        <th className="text-left font-medium px-4 py-3">
-                          Price
-                        </th>
-                        <th className="text-left font-medium px-4 py-3">
-                          Cost
-                        </th>
-                        <th className="text-left font-medium px-4 py-3">
-                          Stock
-                        </th>
-                        <th className="text-left font-medium px-4 py-3">
-                          Updated
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {loadingMyProducts
-                        ? Array.from({ length: 5 }).map((_, i) => (
-                            <tr key={i} className="border-t border-slate-100">
-                              {Array.from({ length: 7 }).map((__, j) => (
-                                <td key={j} className="px-4 py-3">
-                                  <div className="h-4 w-24 bg-slate-100 rounded animate-pulse" />
-                                </td>
-                              ))}
-                            </tr>
-                          ))
-                        : myProducts.map((p: any) => (
-                            <tr
-                              key={p.id}
-                              className="border-t border-slate-100"
-                            >
-                              <td className="px-4 py-3 text-slate-500">
-                                {p.id}
-                              </td>
-                              <td className="px-4 py-3 font-medium text-slate-900">
-                                {p.name}
-                              </td>
-                              <td className="px-4 py-3">{p.internal_code}</td>
-                              <td className="px-4 py-3">{p.price}</td>
-                              <td className="px-4 py-3">{p.cost}</td>
-                              <td className="px-4 py-3">{p.available_stock}</td>
-                              <td className="px-4 py-3">
-                                {p.updated_at
-                                  ? new Date(p.updated_at).toLocaleString()
-                                  : "—"}
-                              </td>
-                            </tr>
-                          ))}
-                    </tbody>
-                  </table>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        </section>
-
-        {/* Low stock & losing products, with inline threshold */}
+        {/* Low stock & losing products */}
         <section className="grid gap-6 lg:grid-cols-2">
           <motion.div
             initial={{ opacity: 0, y: 12 }}
@@ -470,9 +344,6 @@ export function UserDashboardPage() {
                       ({(lowStockGroup ?? []).length})
                     </span>
                   </div>
-
-                  {/* inline threshold control */}
-
                   <div className="flex items-center gap-2">
                     <label className="text-xs font-medium text-slate-600">
                       Threshold
@@ -488,6 +359,7 @@ export function UserDashboardPage() {
                     />
                   </div>
                 </div>
+
                 {!loadingLow && lowStockDetail ? (
                   <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-emerald-800">
                     {lowStockDetail}
@@ -512,7 +384,7 @@ export function UserDashboardPage() {
                             </p>
                             <p className="text-xs font-semibold text-slate-500">
                               Stock:{" "}
-                              <span className=" text-red-500">
+                              <span className="text-red-500">
                                 {loadingLow ? "—" : item?.["stock available"]}
                               </span>
                             </p>
@@ -526,7 +398,6 @@ export function UserDashboardPage() {
             </Card>
           </motion.div>
 
-          {/* Losing products */}
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}

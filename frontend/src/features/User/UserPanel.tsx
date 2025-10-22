@@ -1,3 +1,4 @@
+// page
 import { SiteHeader } from "@/components/site-header";
 import { UserSidebar } from "./widgets/UserSidebar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";

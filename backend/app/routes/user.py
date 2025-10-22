@@ -16,6 +16,27 @@ from app.utils.user_helper import *
 
 router = APIRouter(prefix="/user", tags=["user"])
 
+# get user profile
+@router.get("/user", response_model=dict, name="user")
+def user(
+    db: Session = Depends(get_db), 
+    current_user_id = Depends(validate_user_token)
+):
+    user = get_user_from_id(db, current_user_id)
+    user_profile = get_user_profile(current_user_id, db)
+
+    if user and user_profile:
+        info = {
+            "email": user.email,
+            "username": user_profile.username,
+            "avatar": user_profile.avatar_url,
+            "last_login": user.last_login
+        }
+    else:
+        THROW_ERROR("No user has been found!", 400)
+
+    return info
+    
 # update profile
 @router.patch("/update-user/", response_model=dict, name="updateUserProfile")
 def update_user(
