@@ -17,7 +17,7 @@ import { Package, LayoutDashboard } from "lucide-react";
 import { useAuth } from "@/core/authContext";
 
 // navigate
-import { useNavigate, Link } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 
 // navbar free items
 const items = [
@@ -36,15 +36,7 @@ const items = [
 export function UserSidebar({
   ...props
 }: React.ComponentProps<typeof Sidebar>) {
-  // logout
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
-
-  const handleLogout = () => {
-    logout();
-    navigate({ to: "/" });
-  };
-
+  const { user } = useAuth();
   if (!user) {
     return null;
   }
@@ -85,7 +77,7 @@ export function UserSidebar({
           </SidebarMenu>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter onClick={handleLogout}>
+      <SidebarFooter>
         <NavUser user={userInfo} />
       </SidebarFooter>
     </Sidebar>

@@ -1,126 +1,194 @@
-import * as React from "react";
-// api -> FROM ORVAL
+import { useState } from "react";
+// page
+import { useForm } from "react-hook-form";
+import { motion } from "framer-motion";
+import { User, Mail, Lock, Clock, Eye, EyeOff } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Form,
+  FormItem,
+  FormLabel,
+  FormControl,
+  FormMessage,
+  FormField,
+} from "@/components/ui/form";
+
+// toast helper
+import { toast } from "react-toastify";
+import { getApiErrorMessage } from "@/core/api";
+
+// orval-generated hooks
 import {
   useUpdateUserProfileUserUpdateUserPatch,
   useChangeUserEmailUserChangeEmailPut,
   useChangeUserPasswordUserChangePasswordPut,
   useLastLoginUserMyLastLoginGet,
 } from "@/generated/user/user";
-// page
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { motion } from "framer-motion";
-import { User, Mail, Lock, Clock } from "lucide-react";
-
-/* small field wrapper */
-function Field({
-  label,
-  hint,
-  children,
-}: {
-  label: string;
-  hint?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="space-y-1.5">
-      <label className="text-xs font-medium text-slate-700">{label}</label>
-      {children}
-      {hint ? <p className="text-xs text-slate-500">{hint}</p> : null}
-    </div>
-  );
-}
+import type { AdvancedUsersProfileUpdate } from "@/generated/orval.schemas";
 
 export default function UserProfilePage() {
-  /* banner */
-  const [banner, setBanner] = React.useState<
-    { type: "ok" | "error"; msg: string } | undefined
-  >();
-  const ok = (msg: string) => setBanner({ type: "ok", msg });
-  const err = (msg: string) => setBanner({ type: "error", msg });
-
-  /* last login (GET) */
   const {
-    data: lastLoginRaw,
+    data: lastLoginResp,
     isLoading: loadingLast,
     refetch: refetchLast,
   } = useLastLoginUserMyLastLoginGet();
-  const lastLogin =
-    typeof lastLoginRaw === "string"
-      ? lastLoginRaw
-      : ((lastLoginRaw as any)?.last_login ?? undefined);
 
-  /* -------------------- Update profile (PATCH /user/update-user) -------------------- */
-  const updateProfile = useUpdateUserProfileUserUpdateUserPatch();
-  const [profileForm, setProfileForm] = React.useState({
-    user_id: "" as number | "",
-    username: "",
-    avatar_url: "",
-    address: "",
-    country: "",
-    phone_number: "",
+  const lastLoginStr =
+    typeof lastLoginResp === "string"
+      ? lastLoginResp
+      : ((lastLoginResp as any)?.detail ?? undefined);
+
+  type ProfileValues = {
+    username: string;
+    avatar_url: string;
+    phone_number: string;
+    country: string;
+    address: string;
+  };
+
+  const profileForm = useForm<ProfileValues>({
+    defaultValues: {
+      username: "",
+      avatar_url: "",
+      phone_number: "",
+      country: "",
+      address: "",
+    },
   });
 
-  async function onUpdateProfile(e: React.FormEvent) {
-    e.preventDefault();
-    try {
-      // send exactly as schema shows (body only)
-      await updateProfile.mutateAsync(profileForm as any);
-      ok("Profile updated.");
-      refetchLast?.();
-    } catch (e) {
-      console.error(e);
-      err("Could not update profile.");
+  const updateProfile = useUpdateUserProfileUserUpdateUserPatch();
+
+  function handleProfileSubmit(values: ProfileValues) {
+    const body: AdvancedUsersProfileUpdate = {
+      user_id: 0, // Orval requires it
+    };
+
+    if (values.username.trim() !== "") {
+      body.username = values.username.trim();
     }
+    if (values.avatar_url.trim() !== "") {
+      body.avatar_url = values.avatar_url.trim();
+    }
+    if (values.phone_number.trim() !== "") {
+      body.phone_number = values.phone_number.trim();
+    }
+    if (values.country.trim() !== "") {
+      body.country = values.country.trim();
+    }
+    if (values.address.trim() !== "") {
+      body.address = values.address.trim();
+    }
+
+    // guard: don't send an empty PATCH (besides user_id)
+    if (
+      body.username === undefined &&
+      body.avatar_url === undefined &&
+      body.phone_number === undefined &&
+      body.country === undefined &&
+      body.address === undefined
+    ) {
+      toast.error("Please change at least one field.");
+      return;
+    }
+
+    updateProfile.mutate(
+      { data: body },
+      {
+        onSuccess: () => {
+          toast.success("Profile updated!");
+        },
+        onError: (err: any) => {
+          console.error(err);
+          toast.error("Could not update profile.", { autoClose: false });
+        },
+      }
+    );
   }
 
-  /* -------------------- Change email (PUT /user/change-email?payload=) -------------------- */
+  type EmailValues = {
+    new_email: string;
+  };
+
+  const emailForm = useForm<EmailValues>({
+    defaultValues: {
+      new_email: "",
+    },
+  });
+
   const changeEmail = useChangeUserEmailUserChangeEmailPut();
-  const [newEmail, setNewEmail] = React.useState("");
 
-  async function onChangeEmail(e: React.FormEvent) {
-    e.preventDefault();
-    try {
-      await changeEmail.mutateAsync({ payload: newEmail } as any);
-      ok("Email change requested.");
-    } catch (e) {
-      console.error(e);
-      err("Could not change email.");
+  function handleEmailSubmit(values: { new_email: string }) {
+    const email = values.new_email.trim();
+    if (!email) {
+      toast.error("Please enter an email.");
+      return;
     }
+
+    changeEmail.mutate(
+      {
+        params: {
+          payload: email,
+        },
+      },
+      {
+        onSuccess: () => {
+          toast.success("Email change requested.");
+        },
+        onError: (err: any) => {
+          console.error(err);
+          toast.error("Could not change email.", { autoClose: false });
+        },
+      }
+    );
   }
 
-  /* -------------------- Change password (PUT /user/change-password) -------------------- */
-  const changePassword = useChangeUserPasswordUserChangePasswordPut();
-  const [pwd, setPwd] = React.useState({ password: "", new_password: "" });
+  type PasswordValues = {
+    password: string;
+    new_password: string;
+  };
 
-  async function onChangePassword(e: React.FormEvent) {
-    e.preventDefault();
-    try {
-      await changePassword.mutateAsync(pwd as any);
-      ok("Password changed.");
-      setPwd({ password: "", new_password: "" });
-    } catch (e) {
-      console.error(e);
-      err("Could not change password.");
-    }
+  const passwordForm = useForm<PasswordValues>({
+    defaultValues: {
+      password: "",
+      new_password: "",
+    },
+  });
+
+  const changePassword = useChangeUserPasswordUserChangePasswordPut();
+
+  const [showCurrent, setShowCurrent] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+
+  function handlePasswordSubmit(values: PasswordValues) {
+    changePassword.mutate(
+      {
+        data: {
+          password: values.password,
+          new_password: values.new_password,
+        },
+      } as any,
+      {
+        onSuccess: () => {
+          toast.success("Password updated.");
+          passwordForm.reset();
+        },
+        onError: (err: any) => {
+          console.error(err);
+          const msg = getApiErrorMessage
+            ? getApiErrorMessage(err)
+            : "Could not update password.";
+          toast.error(msg, { autoClose: false });
+        },
+      }
+    );
   }
 
   return (
     <div className="min-h-screen bg-background text-slate-900">
       <main className="max-w-5xl mx-auto px-6 py-8 space-y-8">
-        {banner && (
-          <div
-            className={`rounded-xl border px-4 py-3 text-sm ${
-              banner.type === "ok"
-                ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-                : "border-red-200 bg-red-50 text-red-700"
-            }`}
-          >
-            {banner.msg}
-          </div>
-        )}
-
-        {/* Last login */}
+        {/* Last Login Card */}
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
@@ -130,30 +198,35 @@ export default function UserProfilePage() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Clock className="h-5 w-5 text-slate-600" />
-                  <h2 className="text-lg font-semibold">Last Login</h2>
+                  <h2 className="text-lg font-semibold text-slate-900">
+                    Last Login
+                  </h2>
                 </div>
                 <Button
                   variant="outline"
                   className="border-slate-200"
-                  onClick={() => refetchLast()}
+                  onClick={() => {
+                    refetchLast();
+                  }}
                 >
                   Refresh
                 </Button>
               </div>
-              <p className="mt-3 text-slate-700">
+
+              <p className="mt-3 text-slate-700 text-sm">
                 {loadingLast
-                  ? "—"
-                  : lastLogin
-                    ? new Date(lastLogin).toLocaleString()
+                  ? "Loading..."
+                  : lastLoginStr
+                    ? new Date(lastLoginStr).toLocaleString()
                     : "Unknown"}
               </p>
             </CardContent>
           </Card>
         </motion.div>
 
-        {/* Forms grid */}
+        {/* Forms Grid */}
         <section className="grid gap-6 lg:grid-cols-2">
-          {/* Update profile */}
+          {/* UPDATE PROFILE */}
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
@@ -162,115 +235,128 @@ export default function UserProfilePage() {
               <CardContent className="p-6 space-y-6">
                 <div className="flex items-center gap-2">
                   <User className="h-5 w-5 text-slate-600" />
-                  <h2 className="text-lg font-semibold">Update Profile</h2>
+                  <h2 className="text-lg font-semibold text-slate-900">
+                    Update Profile
+                  </h2>
                 </div>
 
-                <form className="grid gap-4" onSubmit={onUpdateProfile}>
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <Field label="User ID">
-                      <input
-                        type="number"
-                        className="h-10 w-full rounded-xl border border-slate-200 px-3 text-sm bg-white"
-                        value={profileForm.user_id}
-                        onChange={(e) =>
-                          setProfileForm((s) => ({
-                            ...s,
-                            user_id: Number(e.target.value || 0),
-                          }))
-                        }
-                        required
+                <Form {...profileForm}>
+                  <form
+                    className="grid gap-4"
+                    onSubmit={profileForm.handleSubmit(handleProfileSubmit)}
+                    noValidate
+                  >
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <FormField
+                        control={profileForm.control}
+                        name="username"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Username</FormLabel>
+                            <FormControl>
+                              <Input
+                                {...field}
+                                placeholder="your username"
+                                className="h-10 rounded-xl border border-slate-200 bg-white text-sm"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
                       />
-                    </Field>
 
-                    <Field label="Username">
-                      <input
-                        className="h-10 w-full rounded-xl border border-slate-200 px-3 text-sm bg-white"
-                        value={profileForm.username}
-                        onChange={(e) =>
-                          setProfileForm((s) => ({
-                            ...s,
-                            username: e.target.value,
-                          }))
-                        }
-                        placeholder="your handle"
+                      <FormField
+                        control={profileForm.control}
+                        name="avatar_url"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Avatar URL</FormLabel>
+                            <FormControl>
+                              <Input
+                                {...field}
+                                placeholder="https://…"
+                                className="h-10 rounded-xl border border-slate-200 bg-white text-sm"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
                       />
-                    </Field>
 
-                    <Field label="Avatar URL">
-                      <input
-                        className="h-10 w-full rounded-xl border border-slate-200 px-3 text-sm bg-white"
-                        value={profileForm.avatar_url}
-                        onChange={(e) =>
-                          setProfileForm((s) => ({
-                            ...s,
-                            avatar_url: e.target.value,
-                          }))
-                        }
-                        placeholder="https://…"
+                      <FormField
+                        control={profileForm.control}
+                        name="phone_number"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Phone Number</FormLabel>
+                            <FormControl>
+                              <Input
+                                {...field}
+                                placeholder="+123456789"
+                                className="h-10 rounded-xl border border-slate-200 bg-white text-sm"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
                       />
-                    </Field>
 
-                    <Field label="Phone Number">
-                      <input
-                        className="h-10 w-full rounded-xl border border-slate-200 px-3 text-sm bg-white"
-                        value={profileForm.phone_number}
-                        onChange={(e) =>
-                          setProfileForm((s) => ({
-                            ...s,
-                            phone_number: e.target.value,
-                          }))
-                        }
-                        placeholder="+123456789"
+                      <FormField
+                        control={profileForm.control}
+                        name="country"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Country</FormLabel>
+                            <FormControl>
+                              <Input
+                                {...field}
+                                placeholder="Portugal"
+                                className="h-10 rounded-xl border border-slate-200 bg-white text-sm"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
                       />
-                    </Field>
 
-                    <Field label="Country">
-                      <input
-                        className="h-10 w-full rounded-xl border border-slate-200 px-3 text-sm bg-white"
-                        value={profileForm.country}
-                        onChange={(e) =>
-                          setProfileForm((s) => ({
-                            ...s,
-                            country: e.target.value,
-                          }))
-                        }
-                        placeholder="Portugal"
+                      <FormField
+                        control={profileForm.control}
+                        name="address"
+                        render={({ field }) => (
+                          <FormItem className="sm:col-span-2">
+                            <FormLabel>Address</FormLabel>
+                            <FormControl>
+                              <Input
+                                {...field}
+                                placeholder="Street, city, zip"
+                                className="h-10 rounded-xl border border-slate-200 bg-white text-sm"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
                       />
-                    </Field>
+                    </div>
 
-                    <Field label="Address">
-                      <input
-                        className="h-10 w-full rounded-xl border border-slate-200 px-3 text-sm bg-white"
-                        value={profileForm.address}
-                        onChange={(e) =>
-                          setProfileForm((s) => ({
-                            ...s,
-                            address: e.target.value,
-                          }))
-                        }
-                        placeholder="Street, city, zip"
-                      />
-                    </Field>
-                  </div>
-
-                  <div className="pt-2">
-                    <Button
-                      size="lg"
-                      className="bg-slate-600 hover:bg-slate-700"
-                      type="submit"
-                      disabled={(updateProfile as any)?.isPending}
-                    >
-                      {(updateProfile as any)?.isPending
-                        ? "Saving…"
-                        : "Save changes"}
-                    </Button>
-                  </div>
-                </form>
+                    <div className="pt-2">
+                      <Button
+                        size="lg"
+                        className="bg-slate-600 hover:bg-slate-700"
+                        type="submit"
+                        disabled={(updateProfile as any)?.isPending}
+                      >
+                        {(updateProfile as any)?.isPending
+                          ? "Saving…"
+                          : "Save changes"}
+                      </Button>
+                    </div>
+                  </form>
+                </Form>
               </CardContent>
             </Card>
           </motion.div>
 
-          {/* Change email */}
+          {/* CHANGE EMAIL */}
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
@@ -279,38 +365,55 @@ export default function UserProfilePage() {
               <CardContent className="p-6 space-y-6">
                 <div className="flex items-center gap-2">
                   <Mail className="h-5 w-5 text-slate-600" />
-                  <h2 className="text-lg font-semibold">Change Email</h2>
+                  <h2 className="text-lg font-semibold text-slate-900">
+                    Change Email
+                  </h2>
                 </div>
 
-                <form className="grid gap-4" onSubmit={onChangeEmail}>
-                  <Field label="New Email">
-                    <input
-                      type="email"
-                      className="h-10 w-full rounded-xl border border-slate-200 px-3 text-sm bg-white"
-                      value={newEmail}
-                      onChange={(e) => setNewEmail(e.target.value)}
-                      placeholder="you@example.com"
-                      required
+                <Form {...emailForm}>
+                  <form
+                    className="grid gap-4"
+                    onSubmit={emailForm.handleSubmit(handleEmailSubmit)}
+                    noValidate
+                  >
+                    <FormField
+                      control={emailForm.control}
+                      name="new_email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>New Email</FormLabel>
+                          <FormControl>
+                            <Input
+                              {...field}
+                              type="email"
+                              placeholder="you@example.com"
+                              className="h-10 rounded-xl border border-slate-200 bg-white text-sm"
+                              required
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
                     />
-                  </Field>
 
-                  <div className="pt-2">
-                    <Button
-                      className="bg-slate-600 hover:bg-slate-700"
-                      type="submit"
-                      disabled={(changeEmail as any)?.isPending}
-                    >
-                      {(changeEmail as any)?.isPending
-                        ? "Submitting…"
-                        : "Update email"}
-                    </Button>
-                  </div>
-                </form>
+                    <div className="pt-2">
+                      <Button
+                        className="bg-slate-600 hover:bg-slate-700"
+                        type="submit"
+                        disabled={(changeEmail as any)?.isPending}
+                      >
+                        {(changeEmail as any)?.isPending
+                          ? "Submitting…"
+                          : "Update email"}
+                      </Button>
+                    </div>
+                  </form>
+                </Form>
               </CardContent>
             </Card>
           </motion.div>
 
-          {/* Change password */}
+          {/* CHANGE PASSWORD */}
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
@@ -319,46 +422,98 @@ export default function UserProfilePage() {
               <CardContent className="p-6 space-y-6">
                 <div className="flex items-center gap-2">
                   <Lock className="h-5 w-5 text-slate-600" />
-                  <h2 className="text-lg font-semibold">Change Password</h2>
+                  <h2 className="text-lg font-semibold text-slate-900">
+                    Change Password
+                  </h2>
                 </div>
 
-                <form className="grid gap-4" onSubmit={onChangePassword}>
-                  <Field label="Current Password">
-                    <input
-                      type="password"
-                      className="h-10 w-full rounded-xl border border-slate-200 px-3 text-sm bg-white"
-                      value={pwd.password}
-                      onChange={(e) =>
-                        setPwd((s) => ({ ...s, password: e.target.value }))
-                      }
-                      required
+                <Form {...passwordForm}>
+                  <form
+                    className="grid gap-4"
+                    onSubmit={passwordForm.handleSubmit(handlePasswordSubmit)}
+                    noValidate
+                  >
+                    {/* password (current) */}
+                    <FormField
+                      control={passwordForm.control}
+                      name="password"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Current Password</FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <Input
+                                {...field}
+                                type={showCurrent ? "text" : "password"}
+                                className="h-10 rounded-xl border border-slate-200 bg-white text-sm pr-10"
+                                required
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setShowCurrent((v) => !v)}
+                                className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-slate-500 hover:text-slate-700"
+                                aria-label="Toggle current password visibility"
+                              >
+                                {showCurrent ? (
+                                  <EyeOff className="h-4 w-4" />
+                                ) : (
+                                  <Eye className="h-4 w-4" />
+                                )}
+                              </button>
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
                     />
-                  </Field>
 
-                  <Field label="New Password">
-                    <input
-                      type="password"
-                      className="h-10 w-full rounded-xl border border-slate-200 px-3 text-sm bg-white"
-                      value={pwd.new_password}
-                      onChange={(e) =>
-                        setPwd((s) => ({ ...s, new_password: e.target.value }))
-                      }
-                      required
+                    {/* new_password */}
+                    <FormField
+                      control={passwordForm.control}
+                      name="new_password"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>New Password</FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <Input
+                                {...field}
+                                type={showNew ? "text" : "password"}
+                                className="h-10 rounded-xl border border-slate-200 bg-white text-sm pr-10"
+                                required
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setShowNew((v) => !v)}
+                                className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-slate-500 hover:text-slate-700"
+                                aria-label="Toggle new password visibility"
+                              >
+                                {showNew ? (
+                                  <EyeOff className="h-4 w-4" />
+                                ) : (
+                                  <Eye className="h-4 w-4" />
+                                )}
+                              </button>
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
                     />
-                  </Field>
 
-                  <div className="pt-2">
-                    <Button
-                      className="bg-slate-600 hover:bg-slate-700"
-                      type="submit"
-                      disabled={(changePassword as any)?.isPending}
-                    >
-                      {(changePassword as any)?.isPending
-                        ? "Updating…"
-                        : "Update password"}
-                    </Button>
-                  </div>
-                </form>
+                    <div className="pt-2">
+                      <Button
+                        className="bg-slate-600 hover:bg-slate-700"
+                        type="submit"
+                        disabled={(changePassword as any)?.isPending}
+                      >
+                        {(changePassword as any)?.isPending
+                          ? "Updating…"
+                          : "Update password"}
+                      </Button>
+                    </div>
+                  </form>
+                </Form>
               </CardContent>
             </Card>
           </motion.div>

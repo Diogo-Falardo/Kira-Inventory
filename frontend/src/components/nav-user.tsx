@@ -1,5 +1,5 @@
 import { useNavigate } from "@tanstack/react-router";
-
+// page
 import { User, ChevronsUpDown, LogOut } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -18,6 +18,9 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 
+// auth -> context
+import { useAuth } from "@/core/authContext";
+
 export function NavUser({
   user,
 }: {
@@ -30,6 +33,13 @@ export function NavUser({
   const { isMobile } = useSidebar();
 
   const navigate = useNavigate();
+
+  // logout
+  const { logout } = useAuth();
+  const handleLogout = () => {
+    logout();
+    navigate({ to: "/" });
+  };
 
   return (
     <SidebarMenu>
@@ -80,7 +90,7 @@ export function NavUser({
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="cursor-pointer">
+            <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
               <LogOut />
               Log out
             </DropdownMenuItem>

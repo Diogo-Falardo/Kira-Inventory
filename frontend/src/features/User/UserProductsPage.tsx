@@ -1,8 +1,8 @@
-import * as React from "react";
+import { useEffect, useMemo, useState } from "react";
+// page
 import { useForm } from "react-hook-form";
 import { motion } from "framer-motion";
-import { Package, MoreHorizontal, Pencil, Power, Trash2 } from "lucide-react";
-
+import { Package, Pencil, Power, Trash2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,110 +14,80 @@ import {
   FormMessage,
   FormField,
 } from "@/components/ui/form";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableHeader,
+  TableRow,
+  TableHead,
+  TableBody,
+  TableCell,
+} from "@/components/ui/table";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Textarea } from "@/components/ui/textarea";
+import { Skeleton } from "@/components/ui/skeleton";
 
-/* ----------------------------- mock products ----------------------------- */
-type Product = {
-  id: number;
-  name: string;
-  internal_code: string;
-  price: number;
-  cost: number;
-  available_stock: number;
-  updated_at?: string;
-};
+// alert
+import { toast } from "react-toastify";
 
-const MOCK_PRODUCTS: Product[] = [
-  {
-    id: 7,
-    name: "product4",
-    internal_code: "string6",
-    price: 105,
-    cost: 20,
-    available_stock: 13,
-    updated_at: "2025-10-17T15:49:31",
-  },
-  {
-    id: 6,
-    name: "product3",
-    internal_code: "string5",
-    price: 45,
-    cost: 15,
-    available_stock: 100,
-    updated_at: "2025-10-17T15:49:22",
-  },
-  {
-    id: 5,
-    name: "product2",
-    internal_code: "string4",
-    price: 25,
-    cost: 5,
-    available_stock: 25,
-    updated_at: "2025-10-17T15:49:18",
-  },
-  {
-    id: 4,
-    name: "product1",
-    internal_code: "string3",
-    price: 10,
-    cost: 20,
-    available_stock: 10,
-    updated_at: "2025-10-17T15:49:13",
-  },
-  {
-    id: 1,
-    name: "string",
-    internal_code: "string",
-    price: 1,
-    cost: 1,
-    available_stock: 2,
-    updated_at: "2025-10-15T16:54:02",
-  },
-];
+// api
+// react query
+import { useQueryClient } from "@tanstack/react-query";
+// api helper for nice error messages
+import { getApiErrorMessage } from "@/core/api";
+// generated API hooks from Orval
+import {
+  useMyProductsProductMyProductsGet,
+  useAddProductProductAddProductPost,
+  useUpdateProductProductUpdateProductProductIdPatch,
+  useInactiveProductProductInactiveProductProductIdPut,
+  useDeleteProductProductDeleteProductProductIdDelete,
+} from "@/generated/product/product";
 
-/* ----------------------------- banner helper ----------------------------- */
-function useBanner() {
-  const [banner, setBanner] = React.useState<
-    | {
-        type: "ok" | "error";
-        msg: string;
-      }
-    | undefined
-  >();
-  const ok = (msg: string) => setBanner({ type: "ok", msg });
-  const err = (msg: string) => setBanner({ type: "error", msg });
-  return { banner, ok, err, clear: () => setBanner(undefined) };
-}
+// types
+import type { Product } from "@/lib/OtherTypes";
+import type { ProductCreate, ProductUpdate } from "@/generated/orval.schemas";
 
-/* ----------------------------- page component ---------------------------- */
+// Entire page
 export default function UserProductsPage() {
-  const { banner, ok } = useBanner();
+  // UI state that controls which products we request
+  const [mode, setMode] = useState<"all" | "first" | "last">("all");
+  const [n, setN] = useState(5);
 
-  // table controls (pure UI)
-  const [mode, setMode] = React.useState<"all" | "first" | "last">("all");
-  const [n, setN] = React.useState(5);
-  const products = React.useMemo(() => {
-    if (mode === "all") return MOCK_PRODUCTS;
-    if (mode === "first") return MOCK_PRODUCTS.slice(0, n);
-    // last
-    return MOCK_PRODUCTS.slice(-n);
+  // Build query params for the GET hook.
+  // If mode === "all", we don't send any params.
+  // Otherwise we send { mode, n }.
+  const queryTableParams = useMemo(() => {
+    if (mode === "all") return undefined;
+    return { mode, n };
   }, [mode, n]);
+
+  const {
+    data,
+    isLoading,
+    isError,
+    error: fetchError,
+  } = useMyProductsProductMyProductsGet<Product[]>(queryTableParams);
+
+  useEffect(() => {
+    if (isError) {
+      toast.error("Something happened while fetching products.");
+      console.error(fetchError);
+    }
+  }, [isError, fetchError]);
+
+  const products = data ?? [];
 
   return (
     <div className="min-h-screen bg-background text-slate-900">
       <main className="max-w-7xl mx-auto px-6 py-8 space-y-8">
-        {banner && (
-          <div
-            className={`rounded-xl border px-4 py-3 text-sm ${
-              banner.type === "ok"
-                ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-                : "border-red-200 bg-red-50 text-red-700"
-            }`}
-          >
-            {banner.msg}
-          </div>
-        )}
-
-        {/* --------------------------- TABLE (UI-only) --------------------------- */}
+        {/*PRODUCTS TABLE CARD */}
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
@@ -133,152 +103,199 @@ export default function UserProductsPage() {
                     </h3>
                     <p className="text-sm text-slate-600">
                       Showing{" "}
-                      <span className="font-medium">{products.length}</span>{" "}
+                      <span className="font-medium">
+                        {isLoading ? "…" : products.length}
+                      </span>{" "}
                       items
                     </p>
                   </div>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-3">
-                  <label className="text-xs font-medium text-slate-600">
-                    Order
-                  </label>
-                  <select
-                    className="h-9 rounded-xl border border-slate-200 bg-white px-3 text-sm"
-                    value={mode}
-                    onChange={(e) =>
-                      setMode(e.target.value as "all" | "first" | "last")
-                    }
-                  >
-                    <option value="all">all</option>
-                    <option value="first">first</option>
-                    <option value="last">last</option>
-                  </select>
+                  <div className="flex flex-col">
+                    <span className="text-xs text-slate-600 font-medium">
+                      Order
+                    </span>
+                    <Select
+                      value={mode}
+                      onValueChange={(val: "all" | "first" | "last") =>
+                        setMode(val)
+                      }
+                    >
+                      <SelectTrigger className="h-9 w-[110px] rounded-xl border border-slate-200 bg-white text-sm">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="text-sm">
+                        <SelectItem value="all">all</SelectItem>
+                        <SelectItem value="first">first</SelectItem>
+                        <SelectItem value="last">last</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-                  <label className="text-xs font-medium text-slate-600">
-                    Count (n)
-                  </label>
-                  <input
-                    type="number"
-                    min={1}
-                    max={1000}
-                    value={n}
-                    onChange={(e) => setN(Math.max(1, Number(e.target.value)))}
-                    className="h-9 w-24 rounded-xl border border-slate-200 bg-white px-3 text-sm"
-                  />
-
-                  <Button
-                    variant="outline"
-                    className="border-slate-200"
-                    onClick={() => ok("Refreshed (UI only).")}
-                  >
-                    <MoreHorizontal className="h-4 w-4 mr-2" />
-                    Refresh
-                  </Button>
+                  <div className="flex flex-col">
+                    <span className="text-xs text-slate-600 font-medium">
+                      Count
+                    </span>
+                    <Input
+                      type="number"
+                      min={1}
+                      max={1000}
+                      value={n}
+                      onChange={(e) => {
+                        const next = Number(e.target.value);
+                        setN(Math.max(1, next));
+                      }}
+                      className="h-9 w-24 rounded-xl border border-slate-200 bg-white px-3 text-sm"
+                    />
+                  </div>
                 </div>
               </div>
 
               <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="bg-slate-50/80 text-slate-600">
-                    <tr>
-                      <th className="text-left font-medium px-4 py-3">ID</th>
-                      <th className="text-left font-medium px-4 py-3">
-                        Product
-                      </th>
-                      <th className="text-left font-medium px-4 py-3">SKU</th>
-                      <th className="text-left font-medium px-4 py-3">Price</th>
-                      <th className="text-left font-medium px-4 py-3">Cost</th>
-                      <th className="text-left font-medium px-4 py-3">Stock</th>
-                      <th className="text-left font-medium px-4 py-3">
-                        Updated
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {products.map((p) => (
-                      <tr key={p.id} className="border-t border-slate-100">
-                        <td className="px-4 py-3 text-slate-500">{p.id}</td>
-                        <td className="px-4 py-3 font-medium text-slate-900">
-                          {p.name}
-                        </td>
-                        <td className="px-4 py-3">{p.internal_code}</td>
-                        <td className="px-4 py-3">{p.price}</td>
-                        <td className="px-4 py-3">{p.cost}</td>
-                        <td className="px-4 py-3">{p.available_stock}</td>
-                        <td className="px-4 py-3">
-                          {p.updated_at
-                            ? new Date(p.updated_at).toLocaleString()
-                            : "—"}
-                        </td>
-                      </tr>
-                    ))}
-                    {products.length === 0 && (
-                      <tr>
-                        <td
-                          colSpan={7}
-                          className="px-4 py-6 text-center text-slate-500"
-                        >
-                          No products (UI-only).
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
+                {isLoading ? (
+                  <div className="p-4 space-y-2">
+                    <Skeleton className="h-4 w-[90%]" />
+                    <Skeleton className="h-4 w-[75%]" />
+                    <Skeleton className="h-4 w-[82%]" />
+                    <Skeleton className="h-4 w-[60%]" />
+                  </div>
+                ) : (
+                  <Table className="text-sm">
+                    <TableHeader className="bg-slate-50/80 text-slate-600">
+                      <TableRow>
+                        <TableHead className="font-medium px-4 py-3 text-left">
+                          ID
+                        </TableHead>
+                        <TableHead className="font-medium px-4 py-3 text-left">
+                          Product
+                        </TableHead>
+                        <TableHead className="font-medium px-4 py-3 text-left">
+                          SKU
+                        </TableHead>
+                        <TableHead className="font-medium px-4 py-3 text-left">
+                          Price
+                        </TableHead>
+                        <TableHead className="font-medium px-4 py-3 text-left">
+                          Cost
+                        </TableHead>
+                        <TableHead className="font-medium px-4 py-3 text-left">
+                          Stock
+                        </TableHead>
+                        <TableHead className="font-medium px-4 py-3 text-left">
+                          Updated
+                        </TableHead>
+                      </TableRow>
+                    </TableHeader>
+
+                    <TableBody>
+                      {products.length === 0 ? (
+                        <TableRow>
+                          <TableCell
+                            colSpan={7}
+                            className="px-4 py-6 text-center text-slate-500"
+                          >
+                            No products.
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        products.map((p) => (
+                          <TableRow
+                            key={p.id}
+                            className="border-t border-slate-100"
+                          >
+                            <TableCell className="px-4 py-3 text-slate-500">
+                              {p.id}
+                            </TableCell>
+                            <TableCell className="px-4 py-3 font-medium text-slate-900">
+                              {p.name}
+                            </TableCell>
+                            <TableCell className="px-4 py-3">
+                              {p.internal_code}
+                            </TableCell>
+                            <TableCell className="px-4 py-3">
+                              {p.price}
+                            </TableCell>
+                            <TableCell className="px-4 py-3">
+                              {p.cost}
+                            </TableCell>
+                            <TableCell className="px-4 py-3">
+                              {p.available_stock}
+                            </TableCell>
+                            <TableCell className="px-4 py-3">
+                              {p.updated_at
+                                ? new Date(p.updated_at).toLocaleString()
+                                : "—"}
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                )}
+                {isError && (
+                  <Alert className="m-4 border-red-200 bg-red-50 text-red-700">
+                    <AlertDescription>Couldn’t load products.</AlertDescription>
+                  </Alert>
+                )}
               </div>
             </CardContent>
           </Card>
         </motion.div>
 
-        {/* --------------------------- FORMS GRID (UI-only) --------------------------- */}
+        {/*  ACTION FORMS GRID  */}
         <section className="grid gap-6 lg:grid-cols-2">
-          <AddProductCard onSubmitted={(v) => console.log("Add (UI):", v)} />
-          <UpdateProductCard
-            onSubmitted={(v) => console.log("Update (UI):", v)}
-          />
-          <InactivateCard
-            onSubmitted={(v) => console.log("Inactivate (UI):", v)}
-          />
-          <DeleteCard onSubmitted={(v) => console.log("Delete (UI):", v)} />
+          <AddProductCard />
+          <UpdateProductCard />
+          <InactivateCard />
+          <DeleteCard />
         </section>
       </main>
     </div>
   );
 }
 
-/* ============================== Form Cards ============================== */
+// Add product Card
+function AddProductCard() {
+  const queryClient = useQueryClient();
 
-/* ADD PRODUCT */
-type AddValues = {
-  name: string;
-  internal_code?: string;
-  price?: number | string;
-  cost?: number | string;
-  available_stock?: number | string;
-  platform?: string;
-  img_url?: string;
-  description?: string;
-};
-function AddProductCard({
-  onSubmitted,
-}: {
-  onSubmitted: (v: AddValues) => void;
-}) {
-  const form = useForm<AddValues>({
+  const form = useForm<ProductCreate>({
     defaultValues: {
       name: "",
       internal_code: "",
-      price: "",
-      cost: "",
-      available_stock: "",
+      price: "0", // backend wants string(decimal) for money values
+      cost: "0", // same as price
+      available_stock: 0, // backend wants number
       platform: "",
       img_url: "",
       description: "",
     },
   });
 
-  const onSubmit = (values: AddValues) => {
-    onSubmitted(values);
+  // POST /product/add-product/
+  const addProduct = useAddProductProductAddProductPost();
+
+  const handleSubmitForm = (values: ProductCreate) => {
+    addProduct.mutate(
+      { data: values },
+      {
+        onSuccess: () => {
+          toast.success(`Created: ${values.name}`);
+
+          // refresh table
+          queryClient.invalidateQueries({
+            queryKey: ["/product/my-products/"],
+          });
+
+          // reset form
+          form.reset();
+        },
+        onError: (err: any) => {
+          console.error(err);
+          toast.error(getApiErrorMessage(err), { autoClose: false });
+        },
+      }
+    );
   };
 
   return (
@@ -293,10 +310,11 @@ function AddProductCard({
           <Form {...form}>
             <form
               className="grid gap-4"
-              onSubmit={form.handleSubmit(onSubmit)}
+              onSubmit={form.handleSubmit(handleSubmitForm)}
               noValidate
             >
               <div className="grid gap-4 sm:grid-cols-2">
+                {/* name */}
                 <FormField
                   control={form.control}
                   name="name"
@@ -304,27 +322,44 @@ function AddProductCard({
                     <FormItem>
                       <FormLabel>Name</FormLabel>
                       <FormControl>
-                        <Input placeholder="Product name" required {...field} />
+                        <Input
+                          placeholder="Product name"
+                          required
+                          value={field.value ?? ""}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          name={field.name}
+                          ref={field.ref}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
 
+                {/* internal_code */}
                 <FormField
                   control={form.control}
                   name="internal_code"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Internal Code</FormLabel>
+                      <FormLabel>Internal Code (SKU)</FormLabel>
                       <FormControl>
-                        <Input placeholder="SKU / internal" {...field} />
+                        <Input
+                          placeholder="SKU / internal"
+                          value={field.value ?? ""}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          name={field.name}
+                          ref={field.ref}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
 
+                {/* price */}
                 <FormField
                   control={form.control}
                   name="price"
@@ -337,7 +372,11 @@ function AddProductCard({
                           inputMode="decimal"
                           min={0}
                           placeholder="0"
-                          {...field}
+                          value={field.value ?? ""}
+                          onChange={(e) => field.onChange(e.target.value)}
+                          onBlur={field.onBlur}
+                          name={field.name}
+                          ref={field.ref}
                         />
                       </FormControl>
                       <FormMessage />
@@ -345,6 +384,7 @@ function AddProductCard({
                   )}
                 />
 
+                {/* cost */}
                 <FormField
                   control={form.control}
                   name="cost"
@@ -357,7 +397,11 @@ function AddProductCard({
                           inputMode="decimal"
                           min={0}
                           placeholder="0"
-                          {...field}
+                          value={field.value ?? ""}
+                          onChange={(e) => field.onChange(e.target.value)}
+                          onBlur={field.onBlur}
+                          name={field.name}
+                          ref={field.ref}
                         />
                       </FormControl>
                       <FormMessage />
@@ -365,6 +409,7 @@ function AddProductCard({
                   )}
                 />
 
+                {/* available_stock */}
                 <FormField
                   control={form.control}
                   name="available_stock"
@@ -377,7 +422,14 @@ function AddProductCard({
                           inputMode="numeric"
                           min={0}
                           placeholder="0"
-                          {...field}
+                          value={field.value ?? 0}
+                          onChange={(e) => {
+                            const raw = e.target.value;
+                            field.onChange(raw === "" ? 0 : Number(raw));
+                          }}
+                          onBlur={field.onBlur}
+                          name={field.name}
+                          ref={field.ref}
                         />
                       </FormControl>
                       <FormMessage />
@@ -385,6 +437,7 @@ function AddProductCard({
                   )}
                 />
 
+                {/* platform */}
                 <FormField
                   control={form.control}
                   name="platform"
@@ -392,13 +445,21 @@ function AddProductCard({
                     <FormItem>
                       <FormLabel>Platform</FormLabel>
                       <FormControl>
-                        <Input placeholder="Shopify, Etsy…" {...field} />
+                        <Input
+                          placeholder="Shopify, Etsy…"
+                          value={field.value ?? ""}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          name={field.name}
+                          ref={field.ref}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
 
+                {/* img_url */}
                 <FormField
                   control={form.control}
                   name="img_url"
@@ -406,7 +467,14 @@ function AddProductCard({
                     <FormItem>
                       <FormLabel>Image URL</FormLabel>
                       <FormControl>
-                        <Input placeholder="https://…" {...field} />
+                        <Input
+                          placeholder="https://…"
+                          value={field.value ?? ""}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          name={field.name}
+                          ref={field.ref}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -414,6 +482,7 @@ function AddProductCard({
                 />
               </div>
 
+              {/* description */}
               <FormField
                 control={form.control}
                 name="description"
@@ -421,10 +490,14 @@ function AddProductCard({
                   <FormItem>
                     <FormLabel>Description</FormLabel>
                     <FormControl>
-                      <textarea
-                        className="min-h-[90px] w-full rounded-xl border border-slate-200 px-3 py-2 text-sm bg-white"
+                      <Textarea
+                        className="min-h-[90px]"
                         placeholder="Optional description"
-                        {...field}
+                        value={field.value ?? ""}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        name={field.name}
+                        ref={field.ref}
                       />
                     </FormControl>
                     <FormMessage />
@@ -437,8 +510,9 @@ function AddProductCard({
                   size="lg"
                   className="bg-slate-600 hover:bg-slate-700"
                   type="submit"
+                  disabled={addProduct.isPending}
                 >
-                  Create
+                  {addProduct.isPending ? "Creating..." : "Create"}
                 </Button>
               </div>
             </form>
@@ -449,41 +523,132 @@ function AddProductCard({
   );
 }
 
-/* UPDATE PRODUCT */
-type UpdateValues = {
-  product_id: number | string;
-  name?: string;
-  internal_code?: string;
-  price?: number | string;
-  cost?: number | string;
-  available_stock?: number | string;
-  platform?: string;
-  img_url?: string;
-  description?: string;
-};
-function UpdateProductCard({
-  onSubmitted,
-}: {
-  onSubmitted: (v: UpdateValues) => void;
-}) {
-  const form = useForm<UpdateValues>({
+function UpdateProductCard() {
+  const queryClient = useQueryClient();
+
+  // form values = backend update shape + product_id path param
+  type UpdateFormValues = ProductUpdate & {
+    product_id: string;
+  };
+
+  const form = useForm<UpdateFormValues>({
     defaultValues: {
       product_id: "",
       name: "",
-      internal_code: "",
-      price: "",
-      cost: "",
-      available_stock: "",
+      description: "",
+      available_stock: 0,
+      price: "0",
+      cost: "0",
       platform: "",
       img_url: "",
-      description: "",
+      internal_code: "",
+      inactive: false,
     },
   });
 
-  const onSubmit = (values: UpdateValues) => {
-    onSubmitted(values);
-  };
+  const updateProduct = useUpdateProductProductUpdateProductProductIdPatch();
 
+  const handleSubmitForm = (values: UpdateFormValues) => {
+    const {
+      product_id,
+      name,
+      description,
+      internal_code,
+      platform,
+      img_url,
+      price,
+      cost,
+      available_stock,
+      inactive,
+    } = values;
+
+    const productIdNum = Number(product_id);
+    if (Number.isNaN(productIdNum)) {
+      toast.error("Please enter a valid numeric Product ID.");
+      return;
+    }
+
+    const body: Partial<ProductUpdate> = {};
+
+    // send string fields only if not empty
+    if (typeof name === "string" && name.trim() !== "") {
+      body.name = name;
+    }
+
+    if (typeof description === "string" && description.trim() !== "") {
+      body.description = description;
+    }
+
+    if (typeof internal_code === "string" && internal_code.trim() !== "") {
+      body.internal_code = internal_code;
+    }
+
+    if (typeof platform === "string" && platform.trim() !== "") {
+      body.platform = platform;
+    }
+
+    if (typeof img_url === "string" && img_url.trim() !== "") {
+      body.img_url = img_url;
+    }
+
+    // number-ish fields
+    if (price !== undefined && price !== null && `${price}`.trim() !== "") {
+      const n = Number(price);
+      if (!Number.isNaN(n)) {
+        body.price = n;
+      }
+    }
+
+    if (cost !== undefined && cost !== null && `${cost}`.trim() !== "") {
+      const n = Number(cost);
+      if (!Number.isNaN(n)) {
+        body.cost = n;
+      }
+    }
+
+    if (
+      available_stock !== undefined &&
+      available_stock !== null &&
+      `${available_stock}`.trim() !== ""
+    ) {
+      const n = Number(available_stock);
+      if (!Number.isNaN(n)) {
+        body.available_stock = n;
+      }
+    }
+
+    // send inactive flag only if true (you can change this if backend also expects false)
+    if (inactive === true) {
+      body.inactive = true;
+    }
+
+    if (Object.keys(body).length === 0) {
+      toast.error("Please change at least one field before updating.");
+      return;
+    }
+
+    updateProduct.mutate(
+      {
+        productId: productIdNum,
+        data: body,
+      },
+      {
+        onSuccess: () => {
+          toast.success(`Updated product ${productIdNum}`);
+
+          queryClient.invalidateQueries({
+            queryKey: ["/product/my-products/"],
+          });
+
+          form.reset();
+        },
+        onError: (err: any) => {
+          console.error(err);
+          toast.error(getApiErrorMessage(err), { autoClose: false });
+        },
+      }
+    );
+  };
   return (
     <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
       <Card className="border-slate-200">
@@ -496,10 +661,11 @@ function UpdateProductCard({
           <Form {...form}>
             <form
               className="grid gap-4"
-              onSubmit={form.handleSubmit(onSubmit)}
+              onSubmit={form.handleSubmit(handleSubmitForm)}
               noValidate
             >
               <div className="grid gap-4 sm:grid-cols-3">
+                {/* Product ID (required, path param) */}
                 <FormField
                   control={form.control}
                   name="product_id"
@@ -512,7 +678,11 @@ function UpdateProductCard({
                           inputMode="numeric"
                           placeholder="ID"
                           required
-                          {...field}
+                          value={field.value ?? ""}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          name={field.name}
+                          ref={field.ref}
                         />
                       </FormControl>
                       <FormMessage />
@@ -520,6 +690,7 @@ function UpdateProductCard({
                   )}
                 />
 
+                {/* Name */}
                 <FormField
                   control={form.control}
                   name="name"
@@ -527,13 +698,21 @@ function UpdateProductCard({
                     <FormItem>
                       <FormLabel>Name</FormLabel>
                       <FormControl>
-                        <Input placeholder="(optional)" {...field} />
+                        <Input
+                          placeholder="Name"
+                          value={field.value ?? ""}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          name={field.name}
+                          ref={field.ref}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
 
+                {/* Internal Code */}
                 <FormField
                   control={form.control}
                   name="internal_code"
@@ -541,13 +720,21 @@ function UpdateProductCard({
                     <FormItem>
                       <FormLabel>Internal Code</FormLabel>
                       <FormControl>
-                        <Input placeholder="(optional)" {...field} />
+                        <Input
+                          placeholder="SKU / internal"
+                          value={field.value ?? ""}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          name={field.name}
+                          ref={field.ref}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
 
+                {/* Price */}
                 <FormField
                   control={form.control}
                   name="price"
@@ -558,8 +745,12 @@ function UpdateProductCard({
                         <Input
                           type="number"
                           inputMode="decimal"
-                          placeholder="(optional)"
-                          {...field}
+                          placeholder="0"
+                          value={field.value ?? ""}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          name={field.name}
+                          ref={field.ref}
                         />
                       </FormControl>
                       <FormMessage />
@@ -567,6 +758,7 @@ function UpdateProductCard({
                   )}
                 />
 
+                {/* Cost  */}
                 <FormField
                   control={form.control}
                   name="cost"
@@ -577,8 +769,12 @@ function UpdateProductCard({
                         <Input
                           type="number"
                           inputMode="decimal"
-                          placeholder="(optional)"
-                          {...field}
+                          placeholder="0"
+                          value={field.value ?? ""}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          name={field.name}
+                          ref={field.ref}
                         />
                       </FormControl>
                       <FormMessage />
@@ -586,6 +782,7 @@ function UpdateProductCard({
                   )}
                 />
 
+                {/* Available Stock */}
                 <FormField
                   control={form.control}
                   name="available_stock"
@@ -596,8 +793,12 @@ function UpdateProductCard({
                         <Input
                           type="number"
                           inputMode="numeric"
-                          placeholder="(optional)"
-                          {...field}
+                          placeholder="0"
+                          value={field.value ?? ""}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          name={field.name}
+                          ref={field.ref}
                         />
                       </FormControl>
                       <FormMessage />
@@ -605,6 +806,7 @@ function UpdateProductCard({
                   )}
                 />
 
+                {/* Platform */}
                 <FormField
                   control={form.control}
                   name="platform"
@@ -612,13 +814,21 @@ function UpdateProductCard({
                     <FormItem>
                       <FormLabel>Platform</FormLabel>
                       <FormControl>
-                        <Input placeholder="(optional)" {...field} />
+                        <Input
+                          placeholder="Platform"
+                          value={field.value ?? ""}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          name={field.name}
+                          ref={field.ref}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
 
+                {/* Image URL */}
                 <FormField
                   control={form.control}
                   name="img_url"
@@ -626,7 +836,37 @@ function UpdateProductCard({
                     <FormItem>
                       <FormLabel>Image URL</FormLabel>
                       <FormControl>
-                        <Input placeholder="(optional)" {...field} />
+                        <Input
+                          placeholder="https://…"
+                          value={field.value ?? ""}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          name={field.name}
+                          ref={field.ref}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* Inactive flag */}
+                <FormField
+                  control={form.control}
+                  name="inactive"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Inactive?</FormLabel>
+                      <FormControl>
+                        <input
+                          type="checkbox"
+                          className="h-4 w-4 rounded border-slate-300"
+                          checked={!!field.value}
+                          onChange={(e) => field.onChange(e.target.checked)}
+                          onBlur={field.onBlur}
+                          ref={field.ref}
+                          name={field.name}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -634,6 +874,7 @@ function UpdateProductCard({
                 />
               </div>
 
+              {/* Description */}
               <FormField
                 control={form.control}
                 name="description"
@@ -641,10 +882,14 @@ function UpdateProductCard({
                   <FormItem>
                     <FormLabel>Description</FormLabel>
                     <FormControl>
-                      <textarea
-                        className="min-h-[90px] w-full rounded-xl border border-slate-200 px-3 py-2 text-sm bg-white"
-                        placeholder="(optional)"
-                        {...field}
+                      <Textarea
+                        className="min-h-[90px]"
+                        placeholder="Description"
+                        value={field.value ?? ""}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        name={field.name}
+                        ref={field.ref}
                       />
                     </FormControl>
                     <FormMessage />
@@ -657,8 +902,9 @@ function UpdateProductCard({
                   size="lg"
                   className="bg-slate-600 hover:bg-slate-700"
                   type="submit"
+                  disabled={updateProduct.isPending}
                 >
-                  Update
+                  {updateProduct.isPending ? "Updating..." : "Update"}
                 </Button>
               </div>
             </form>
@@ -669,15 +915,42 @@ function UpdateProductCard({
   );
 }
 
-/* INACTIVATE PRODUCT */
 type InactivateValues = { product_id: number | string };
-function InactivateCard({
-  onSubmitted,
-}: {
-  onSubmitted: (v: InactivateValues) => void;
-}) {
-  const form = useForm<InactivateValues>({ defaultValues: { product_id: "" } });
-  const onSubmit = (v: InactivateValues) => onSubmitted(v);
+
+function InactivateCard() {
+  const queryClient = useQueryClient();
+
+  const form = useForm<InactivateValues>({
+    defaultValues: { product_id: "" },
+  });
+
+  // PUT /product/inactive-product/{product_id}
+  const inactiveProduct =
+    useInactiveProductProductInactiveProductProductIdPut();
+
+  const handleSubmitForm = (values: InactivateValues) => {
+    const idNum = Number(values.product_id);
+    inactiveProduct.mutate(
+      {
+        productId: idNum,
+      },
+      {
+        onSuccess: () => {
+          toast.success(`Product ${idNum} inactivated`);
+
+          queryClient.invalidateQueries({
+            queryKey: ["/product/my-products/"],
+          });
+
+          form.reset();
+        },
+        onError: (err: any) => {
+          console.error(err);
+          toast.error(getApiErrorMessage(err), { autoClose: false });
+        },
+      }
+    );
+  };
 
   return (
     <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
@@ -691,9 +964,10 @@ function InactivateCard({
           <Form {...form}>
             <form
               className="grid gap-3"
-              onSubmit={form.handleSubmit(onSubmit)}
+              onSubmit={form.handleSubmit(handleSubmitForm)}
               noValidate
             >
+              {/* product_id */}
               <FormField
                 control={form.control}
                 name="product_id"
@@ -706,15 +980,24 @@ function InactivateCard({
                         inputMode="numeric"
                         placeholder="ID"
                         required
-                        {...field}
+                        value={field.value ?? ""}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        name={field.name}
+                        ref={field.ref}
                       />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              <Button className="bg-amber-600 hover:bg-amber-700" type="submit">
-                Inactivate
+
+              <Button
+                className="bg-amber-600 hover:bg-amber-700"
+                type="submit"
+                disabled={inactiveProduct.isPending}
+              >
+                {inactiveProduct.isPending ? "Inactivating..." : "Inactivate"}
               </Button>
             </form>
           </Form>
@@ -724,15 +1007,41 @@ function InactivateCard({
   );
 }
 
-/* DELETE PRODUCT */
 type DeleteValues = { product_id: number | string };
-function DeleteCard({
-  onSubmitted,
-}: {
-  onSubmitted: (v: DeleteValues) => void;
-}) {
-  const form = useForm<DeleteValues>({ defaultValues: { product_id: "" } });
-  const onSubmit = (v: DeleteValues) => onSubmitted(v);
+
+function DeleteCard() {
+  const queryClient = useQueryClient();
+
+  const form = useForm<DeleteValues>({
+    defaultValues: { product_id: "" },
+  });
+
+  // DELETE /product/delete-product/{product_id}
+  const deleteProduct = useDeleteProductProductDeleteProductProductIdDelete();
+
+  const handleSubmitForm = (values: DeleteValues) => {
+    const idNum = Number(values.product_id);
+    deleteProduct.mutate(
+      {
+        productId: idNum,
+      },
+      {
+        onSuccess: () => {
+          toast.success(`Deleted product ${idNum}`);
+
+          queryClient.invalidateQueries({
+            queryKey: ["/product/my-products/"],
+          });
+
+          form.reset();
+        },
+        onError: (err: any) => {
+          console.error(err);
+          toast.error(getApiErrorMessage(err), { autoClose: false });
+        },
+      }
+    );
+  };
 
   return (
     <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
@@ -746,9 +1055,10 @@ function DeleteCard({
           <Form {...form}>
             <form
               className="grid gap-3"
-              onSubmit={form.handleSubmit(onSubmit)}
+              onSubmit={form.handleSubmit(handleSubmitForm)}
               noValidate
             >
+              {/* product_id */}
               <FormField
                 control={form.control}
                 name="product_id"
@@ -761,15 +1071,24 @@ function DeleteCard({
                         inputMode="numeric"
                         placeholder="ID"
                         required
-                        {...field}
+                        value={field.value ?? ""}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        name={field.name}
+                        ref={field.ref}
                       />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              <Button className="bg-red-600 hover:bg-red-700" type="submit">
-                Delete
+
+              <Button
+                className="bg-red-600 hover:bg-red-700"
+                type="submit"
+                disabled={deleteProduct.isPending}
+              >
+                {deleteProduct.isPending ? "Deleting..." : "Delete"}
               </Button>
             </form>
           </Form>

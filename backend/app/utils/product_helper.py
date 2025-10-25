@@ -16,7 +16,7 @@ def validate_product_name(product_name: str, user_id: int,db: Session) -> bool:
     pattern = re.compile(r'^[a-zA-Z0-9]+$')
 
     if pattern.match(product_name) is None: 
-        THROW_ERROR("Product name cant have simbols!", 400)
+        THROW_ERROR("Product name cant have simbols or spaces!", 400)
     
     product = db.query(Product).filter(Product.name == product_name, Product.user_id == user_id).first()
     if product:
