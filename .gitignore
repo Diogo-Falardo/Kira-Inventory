@@ -17,8 +17,10 @@ dist/
 
 # Virtual environment
 venv/
+
+# Environment files
 .env
-.env.*
+!.env.example
 
 # Alembic / Migrations cache
 alembic/__pycache__/
