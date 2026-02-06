@@ -6,7 +6,7 @@ import { z } from "zod";
 
 // Base of Product Settings
 export const ProductSettingsBase = z.object({
-  productId: z.bigint(),
+  productId: z.number(),
   productCurrentStock: z.number().int(),
   productMoneyMade: z.number().positive({ message: "Price must be positive!" }),
 });

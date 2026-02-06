@@ -18,8 +18,8 @@ export const ProductCategoryEnum = z.enum([
  * - Not null
  */
 export const ProductBase = z.object({
-  productID: z.bigint(),
-  shopOwnerId: z.bigint(),
+  productId: z.number(),
+  shopOwnerId: z.number(),
   productName: z.string().trim().min(1).max(40),
   productPrice: z.number().positive({ message: "Price must be positive!" }),
   isVisible: z.number().int().min(1).max(1),
@@ -73,10 +73,11 @@ export const ProductOut = ProductBaseExtended.omit({
 export const ProductOutOwner = ProductBaseExtended.omit({
   shopOwnerId: true,
 });
+export type ProductOutOwner = z.infer<typeof ProductOutOwner>;
 
 // Product Create
 export const ProductCreateSchema = ProductBaseExtended.omit({
-  productID: true,
+  productId: true,
   shopOwnerId: true,
   isVisible: true,
   isActive: true,
@@ -87,7 +88,7 @@ export type ProductCreateDto = z.infer<typeof ProductCreateSchema>;
 
 // Product Patch
 export const ProductPatchSchema = ProductBaseExtended.omit({
-  productID: true,
+  productId: true,
   shopOwnerId: true,
   createdAt: true,
   updatedAt: true,

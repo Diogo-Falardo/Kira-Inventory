@@ -21,6 +21,7 @@ export const productSettings = mysqlTable(
   {
     productId: bigint("product_id", { mode: "number" })
       .notNull()
+      .primaryKey()
       .references(() => products.productId, {
         onDelete: "cascade",
         onUpdate: "cascade",
@@ -49,7 +50,8 @@ export const products = mysqlTable(
   {
     productId: bigint("product_id", { mode: "number" })
       .autoincrement()
-      .notNull(),
+      .notNull()
+      .primaryKey(),
     shopOwnerId: bigint("shop_owner_id", { mode: "number" }).notNull(),
     productName: varchar("product_name", { length: 255 }).notNull(),
     productPrice: decimal("product_price", { precision: 12, scale: 2 })
@@ -57,7 +59,7 @@ export const products = mysqlTable(
       .notNull(),
     productDescription: text("product_description"),
     productImages: json("product_images"),
-    productStockQuantity: int("product_stock_quantity").default(0).notNull(),
+    productStockQuantity: int("product_stock_quantity"),
     productCategories: json("product_categories"),
     productDiscountPrice: decimal("product_discount_price", {
       precision: 12,
