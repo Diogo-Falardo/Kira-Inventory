@@ -22,6 +22,10 @@ import { Request, Response, NextFunction } from "express";
 const app = express();
 app.use(express.json());
 
+// product router
+import productRouter from "./system/route/product.route";
+app.use("/product", productRouter);
+
 // use http Error
 app.use((err: unknown, req: Request, res: Response, next: NextFunction) => {
   if (err instanceof HttpError) {
@@ -38,7 +42,3 @@ app.use((err: unknown, req: Request, res: Response, next: NextFunction) => {
 app.listen(port, () => {
   console.log(`App listening on port ${port}`);
 });
-
-// product router
-import productRouter from "./system/route/product.route";
-app.use("/product", productRouter);
