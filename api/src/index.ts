@@ -1,6 +1,6 @@
 // dev config
 const port = 999;
-export const shopOwnerId = Number("000001");
+export const ShopOwnerId = Number("000001");
 
 // error constructor
 export class HttpError extends Error {
