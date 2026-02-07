@@ -17,12 +17,12 @@ import { HttpError } from "../..";
 export const ProductService = {
   /**
    * Checks if the user has already a product with that name
-   * @param ShopOwnerId
+   * @param shopOwnerId
    * @param productName
    * @returns boolean
    */
-  async _hasProductWithName(
-    ShopOwnerId: number,
+  async hasProductWithName(
+    shopOwnerId: number,
     productName: string,
   ): Promise<Boolean> {
     try {
@@ -31,7 +31,7 @@ export const ProductService = {
         .from(products)
         .where(
           and(
-            eq(products.shopOwnerId, ShopOwnerId),
+            eq(products.shopOwnerId, shopOwnerId),
             eq(products.productName, productName),
           ),
         )
@@ -45,8 +45,38 @@ export const ProductService = {
   },
 
   /**
+   * Verify if the user owns that product
+   * @param shopOwnerId
+   * @param productId
+   * @returns
+   */
+  async itsProductOwnedByUser(
+    shopOwnerId: number,
+    productId: number,
+  ): Promise<ProductOutOwner | Boolean> {
+    try {
+      const product = await db
+        .select()
+        .from(products)
+        .where(
+          and(
+            eq(products.shopOwnerId, shopOwnerId),
+            eq(products.productId, productId),
+          ),
+        )
+        .limit(1);
+      const row = product[0];
+      if (!row) return false;
+      else return ProductOutOwner.parse(row);
+    } catch (err) {
+      throw new HttpError(500, "Error finding product!");
+    }
+  },
+
+  /**
    * Get a product by id
    * @param productId
+   * @param shopOwnerId
    * @returns product
    */
   async getProductById(productId: number): Promise<ProductOutOwner> {
@@ -63,38 +93,66 @@ export const ProductService = {
 
       return ProductOutOwner.parse(row);
     } catch (err) {
-      throw new HttpError(500, "finding product");
+      throw new HttpError(500, "Error finding product");
     }
   },
 
+  // create a product
   async create(
-    ShopOwnerId: number,
+    shopOwnerId: number,
     dto: ProductCreateDto,
   ): Promise<ProductOutOwner> {
-    // validates if user has alredy a product with that name
-    const hasProduct = await this._hasProductWithName(
-      ShopOwnerId,
-      dto.productName,
-    );
-    if (hasProduct === true) throw new HttpError(400, "product already exists");
+    try {
+      const newProduct = await db
+        .insert(products)
+        .values({
+          shopOwnerId: shopOwnerId,
+          productName: dto.productName,
+          productPrice: dto.productPrice,
+          productCategories: dto.productCategories ?? null,
+          productDescription: dto.productDescription ?? null,
+          productDiscountPrice: dto.productDiscountPrice ?? null,
+          productImages: dto.productImages ?? [],
+          productStockQuantity: dto.productStockQuantity ?? null,
+        })
+        .$returningId();
 
-    const newProduct = await db
-      .insert(products)
-      .values({
-        shopOwnerId: ShopOwnerId,
-        productName: dto.productName,
-        productPrice: dto.productPrice.toFixed(),
-        productCategories: dto.productCategories ?? null,
-        productDescription: dto.productDescription ?? null,
-        productDiscountPrice: dto.productDiscountPrice?.toFixed(2) ?? null,
-        productImages: dto.productImages ?? [],
-        productStockQuantity: dto.productStockQuantity ?? null,
-      })
-      .$returningId();
+      const id = newProduct[0].productId;
+      const product = await this.getProductById(id);
 
-    const id = newProduct[0].productId;
-    const product = await this.getProductById(id);
+      return ProductOutOwner.parse(product);
+    } catch (err) {
+      throw new HttpError(500, "Error creating new product!");
+    }
+  },
 
-    return ProductOutOwner.parse(product);
+  // updates a product
+  async patch(
+    productId: number,
+    dto: ProductPatchDto,
+  ): Promise<ProductOutOwner> {
+    try {
+      await db
+        .update(products)
+        .set(dto)
+        .where(eq(products.productId, productId));
+
+      const updated = await this.getProductById(productId);
+
+      return ProductOutOwner.parse(updated);
+    } catch (err) {
+      throw new HttpError(500, "Error updating product");
+    }
+  },
+
+  // deletes a product
+  async delete(productId: number): Promise<boolean> {
+    try {
+      await db.delete(products).where(eq(products.productId, productId));
+
+      return true;
+    } catch (err) {
+      throw new HttpError(500, "Error creating product");
+    }
   },
 };

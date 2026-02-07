@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { PriceInEuros } from "../../system/utils/helpers";
 
 /**
  * Product Settings table
@@ -8,16 +9,12 @@ import { z } from "zod";
 export const ProductSettingsBase = z.object({
   productId: z.number(),
   productCurrentStock: z.number().int(),
-  productMoneyMade: z.number().positive({ message: "Price must be positive!" }),
+  productMoneyMade: PriceInEuros,
 });
 
 // Extended Base of the product settings
 export const ProductSettingsBaseExtended = ProductSettingsBase.extend({
-  productUnitPrice: z
-    .number()
-    .positive({ message: "Price must be positive!" })
-    .nullable()
-    .optional(),
+  productUnitPrice: PriceInEuros.optional().nullable(),
   productLowStockQuantity: z
     .number()
     .positive({ message: "Price must be positive!" })

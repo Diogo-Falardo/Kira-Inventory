@@ -6,7 +6,6 @@ import {
   foreignKey,
   primaryKey,
   bigint,
-  decimal,
   int,
   index,
   varchar,
@@ -26,16 +25,14 @@ export const productSettings = mysqlTable(
         onDelete: "cascade",
         onUpdate: "cascade",
       }),
-    productUnitPrice: decimal("product_unit_price", { precision: 12, scale: 4 })
-      .default("0.0000")
-      .notNull(),
+    productUnitPrice: bigint("product_unit_price", { mode: "number" }),
     productCurrentStock: int("product_current_stock").default(0).notNull(),
     productLowStockQuantity: int("product_low_stock_quantity")
       .default(5)
       .notNull(),
-    productMoneyMade: decimal("product_money_made", { precision: 14, scale: 2 })
-      .default("0.00")
-      .notNull(),
+    productMoneyMade: bigint("product_money_made", {
+      mode: "number",
+    }).notNull(),
   },
   (table) => [
     primaryKey({
@@ -54,17 +51,12 @@ export const products = mysqlTable(
       .primaryKey(),
     shopOwnerId: bigint("shop_owner_id", { mode: "number" }).notNull(),
     productName: varchar("product_name", { length: 255 }).notNull(),
-    productPrice: decimal("product_price", { precision: 12, scale: 2 })
-      .default("0.00")
-      .notNull(),
+    productPrice: bigint("product_price", { mode: "number" }).notNull(),
     productDescription: text("product_description"),
     productImages: json("product_images"),
     productStockQuantity: int("product_stock_quantity"),
     productCategories: json("product_categories"),
-    productDiscountPrice: decimal("product_discount_price", {
-      precision: 12,
-      scale: 2,
-    }),
+    productDiscountPrice: bigint("product_discount_price", { mode: "number" }),
     isVisible: tinyint("is_visible").default(1).notNull(),
     isActive: tinyint("is_active").default(1).notNull(),
     createdAt: timestamp("created_at", { mode: "string" })

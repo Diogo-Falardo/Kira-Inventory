@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { PriceInEuros } from "../../system/utils/helpers";
 
 /**
  * Product table
@@ -21,7 +22,7 @@ export const ProductBase = z.object({
   productId: z.number(),
   shopOwnerId: z.number(),
   productName: z.string().trim().min(1).max(40),
-  productPrice: z.number().positive({ message: "Price must be positive!" }),
+  productPrice: PriceInEuros,
   isVisible: z.number().int().min(1).max(1),
   isActive: z.number().int().min(1).max(1),
   createdAt: z.string().trim(),
@@ -49,12 +50,7 @@ export const ProductBaseExtended = ProductBase.extend({
     .nullable()
     .optional(),
   productCategories: ProductCategoryEnum.optional().nullable(),
-  productDiscountPrice: z
-    .number()
-    .int()
-    .positive({ message: "Price must be positive!" })
-    .nullable()
-    .optional(),
+  productDiscountPrice: PriceInEuros.optional().nullable(),
 });
 
 // Simple Product Visualization
@@ -95,5 +91,7 @@ export const ProductPatchSchema = ProductBaseExtended.omit({
 }).partial({
   productName: true,
   productPrice: true,
+  isActive: true,
+  isVisible: true,
 });
 export type ProductPatchDto = z.infer<typeof ProductPatchSchema>;
